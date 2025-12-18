@@ -38,14 +38,15 @@
       font-size:.85rem; color:#6b7280; text-align:center; min-height:1.2rem; margin:.2rem 0 .3rem;
     }
     .primary-btn{
-      margin-top:.8rem; width:100%; padding:.75rem 1rem; font-size:1.1rem; border-radius:999px;
-      border:none; cursor:pointer; background:#2563eb; color:#fff; font-weight:700;
+      margin-top:.8rem; width:100%; padding:.75rem 1rem; font-size:1.1rem; border:none;
+      border-radius:999px; cursor:pointer; background:#2563eb; color:#fff; font-weight:700;
     }
     .primary-btn:hover{ background:#1d4ed8; }
     .primary-btn:disabled{ background:#9ca3af; cursor:not-allowed; }
     .secondary-btn{
-      margin-top:.4rem; width:100%; padding:.65rem 1rem; font-size:1rem; border-radius:999px;
-      border:1px solid #d1d5db; cursor:pointer; background:#f9fafb; color:#111827; font-weight:600;
+      margin-top:.4rem; width:100%; padding:.65rem 1rem; font-size:1rem;
+      border-radius:999px; border:1px solid #d1d5db; cursor:pointer; background:#f9fafb;
+      color:#111827; font-weight:600;
     }
     .secondary-btn:hover{ background:#e5e7eb; border-color:#9ca3af; }
 
@@ -153,7 +154,7 @@
   <div id="quiz-screen" class="hidden">
     <div class="progress" id="progress-text"></div>
     <div class="center">
-      <span class="tag" id="variant-label"></span>
+      <span class="tag" id'="variant-label"></span>
       <div class="equation">Sage die passende Uhrzeit:</div>
       <div class="small-note"><span class="badge">Tipp</span> Es reicht, wenn die richtige Lösung <strong>im Gesagten enthalten</strong> ist (z.B. „… viertel vor zehn …“).</div>
     </div>
@@ -168,7 +169,6 @@
         <button class="secondary-btn" id="check-btn" style="margin-top:0;">Überprüfen</button>
       </div>
 
-      <!-- Fallback (wenn SR nicht verfügbar) -->
       <div id="fallback-wrap" class="hidden" style="margin-top:.6rem;">
         <input id="fallback-input" class="input-fallback" placeholder="Falls Sprechen nicht geht: hier eintippen (z.B. viertel vor zehn)" />
         <div class="hint">Browser ohne Spracherkennung: tippe die Antwort. (Empfohlen: Chrome/Edge)</div>
@@ -205,18 +205,16 @@
   const GRADE_LABELS = { 2: "2. Klasse", 3: "3. Klasse" };
   const DIFF_LABELS = { easy: "einfach", hard: "schwierig" };
 
-  let selectedGrade = null;       // 2|3
-  let selectedDifficulty = null;  // easy|hard
+  let selectedGrade = null;
+  let selectedDifficulty = null;
 
   let questionsDone = 0;
   let correctAnswers = 0;
   let wrongAnswers = 0;
   let usedQuestions = [];
 
-  // currentQuestion: {hour, minute, label, correctSet:Set<string>, canonical:string, acceptedPhrases:string[]}
   let currentQuestion = null;
 
-  // DOM
   const startScreen = document.getElementById("start-screen");
   const quizScreen = document.getElementById("quiz-screen");
   const resultScreen = document.getElementById("result-screen");
@@ -252,12 +250,16 @@
   const clockCtx = clockCanvas.getContext("2d");
 
   // ------------------------
-  // SpeechRecognition setup
+  // SpeechRecognition
   // ------------------------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognizer = null;
   let isListening = false;
+
+  // Roh-Text vom Browser (egal ob Wörter oder "9:05")
   let lastTranscriptRaw = "";
+  // Unsere "Wörter"-Anzeige (z.B. aus "9:05" -> "fünf nach neun")
+  let lastTranscriptPretty = "";
 
   function setupSpeechRecognition(){
     if(!SR){
@@ -269,7 +271,7 @@
       return;
     }
     recognizer = new SR();
-    recognizer.lang = "de-CH";          // de-CH passt gut für CH-Klasse (bei Bedarf de-DE)
+    recognizer.lang = "de-CH";
     recognizer.interimResults = false;
     recognizer.maxAlternatives = 1;
     recognizer.continuous = false;
@@ -290,7 +292,6 @@
     };
 
     recognizer.onerror = (e) => {
-      // typisches: "no-speech", "not-allowed", "audio-capture"
       feedback.textContent = "Sprach-Fehler: " + (e.error || "unbekannt");
       feedback.className = "feedback error";
       fallbackWrap.classList.remove("hidden");
@@ -299,8 +300,11 @@
     recognizer.onresult = (e) => {
       const t = e.results?.[0]?.[0]?.transcript || "";
       lastTranscriptRaw = t;
-      heardEl.textContent = "Erkannt: " + (t || "—");
-      // nach Erkennung kannst du direkt prüfen (optional). Wir lassen es bewusst manuell über "Überprüfen".
+
+      // WICHTIG: Anzeige wird "wortig" gemacht (auch wenn Browser "9:05" liefert)
+      lastTranscriptPretty = prettyHeardText(t);
+
+      heardEl.textContent = "Erkannt: " + (lastTranscriptPretty || "—");
     };
 
     srNote.textContent = "Hinweis: Mikrofon-Berechtigung nötig. Starte mit Klick auf „Sprechen“.";
@@ -317,9 +321,9 @@
     }
     try{
       lastTranscriptRaw = "";
+      lastTranscriptPretty = "";
       recognizer.start();
     }catch(err){
-      // manchmal wirft start() eine Exception, wenn zu schnell hintereinander
       feedback.textContent = "Bitte kurz warten und nochmals auf „Sprechen“ klicken.";
       feedback.className = "feedback error";
     }
@@ -335,65 +339,122 @@
   }
   function capFirst(s){ return s ? (s.charAt(0).toUpperCase()+s.slice(1)) : s; }
 
+  const NUM_WORD = {
+    0:"null",1:"eins",2:"zwei",3:"drei",4:"vier",5:"fünf",6:"sechs",7:"sieben",8:"acht",9:"neun",
+    10:"zehn",11:"elf",12:"zwölf",13:"dreizehn",14:"vierzehn",15:"fünfzehn",16:"sechzehn",17:"siebzehn",
+    18:"achtzehn",19:"neunzehn",20:"zwanzig",25:"fünfundzwanzig",30:"dreißig",35:"fünfunddreißig",
+    40:"vierzig",45:"fünfundvierzig",50:"fünfzig",55:"fünfundfünfzig"
+  };
+
   function hourToWord(h){
     const map = {1:"eins",2:"zwei",3:"drei",4:"vier",5:"fünf",6:"sechs",7:"sieben",8:"acht",9:"neun",10:"zehn",11:"elf",12:"zwölf"};
     return map[h] || String(h);
   }
   function hourToWordEin(h){ return h === 1 ? "ein" : hourToWord(h); }
 
-  // Normalisierung: klein, umlaute stabil, sonderzeichen weg, multiple spaces
-  function normalizeText(s){
+  // Füllwörter entfernen (nur für Matching/Anzeige)
+  function stripFillers(s){
     s = (s || "").toLowerCase();
-
-    // häufige Einleitungen entfernen / egal machen (wir matchen trotzdem per contains)
-    // Wir lassen sie drin – contains wird dadurch nicht gestört.
-
-    // Zahlen (1-12) im Text zu Worten machen (falls SpeechRecognition "10" liefert)
-    const numMap = {
-      "1":"eins","2":"zwei","3":"drei","4":"vier","5":"fünf","6":"sechs","7":"sieben","8":"acht","9":"neun","10":"zehn","11":"elf","12":"zwölf",
-      "15":"viertel","20":"zwanzig"
-    };
-    // zuerst 10-12, 15, 20, 11, 12 etc. durch Regex mit Wordboundaries
-    const nums = ["20","15","12","11","10","9","8","7","6","5","4","3","2","1"];
-    for(const n of nums){
-      s = s.replace(new RegExp(`\\b${n}\\b`, "g"), numMap[n] || n);
+    // typische Füllteile entfernen
+    const fillers = [
+      "es ist", "das ist", "jetzt ist es", "nun ist es", "bitte", "äh", "hm", "also"
+    ];
+    for(const f of fillers){
+      s = s.replace(new RegExp("\\b" + f.replace(/\s+/g,"\\s+") + "\\b", "g"), " ");
     }
+    // "uhr" generell entfernen (wir bewerten ohne "uhr")
+    s = s.replace(/\buhr\b/g, " ");
+    return s.replace(/\s+/g," ").trim();
+  }
 
-    // Satzzeichen raus, alles auf spaces
-    s = s.replace(/[^\p{L}\p{N}\s]/gu, " ");
-    s = s.replace(/\s+/g, " ").trim();
+  // Erkenne Muster wie 9:05 oder 9.05 oder 09:05
+  function parseTimeFromText(s){
+    const m = (s || "").match(/\b([0-2]?\d)\s*[:.]\s*([0-5]\d)\b/);
+    if(!m) return null;
+    let hh = parseInt(m[1],10);
+    let mm = parseInt(m[2],10);
+    if(Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    if(hh === 0) hh = 12;
+    // in 12h umwandeln
+    hh = ((hh - 1) % 12) + 1;
+    return {hour: hh, minute: mm};
+  }
+
+  // Normalisierung fürs Matching (klein, sonderzeichen weg, spaces)
+  function normalizeBasic(s){
+    s = (s || "").toLowerCase();
+    s = s.replace(/[^\p{L}\p{N}\s:.]/gu, " "); // : . behalten für parseTime
+    s = s.replace(/\s+/g," ").trim();
     return s;
   }
 
-  // Match: richtige Lösung muss im Gesagten enthalten sein.
-  // Wir nutzen Word-boundary-ish Matching (per " (phrase) " in gepaddetem String),
-  // damit "zehn" nicht in "zehntel" matcht.
+  // Aus einer "9:05" Erkennung wird eine umgangssprachliche Phrase,
+  // die zu unserem Bewertungs-Vokabular passt (wenn möglich).
+  function timeDigitsToPhrase(hour, minute){
+    // Nur unsere „bekannten“ Minutenmuster -> Phrase
+    const forms = timeToForms(hour, minute);
+    // canonical ist z.B. "Fünf nach neun"
+    return forms?.canonical ? forms.canonical.toLowerCase().replace(/\buhr\b/g,"").trim() : "";
+  }
+
+  // Anzeige: immer möglichst Wörter
+  function prettyHeardText(raw){
+    let s = normalizeBasic(raw);
+
+    // Wenn Browser Zahlenzeit liefert: 9:05 -> in Wörter umformen
+    const parsed = parseTimeFromText(s);
+    if(parsed){
+      const phrase = timeDigitsToPhrase(parsed.hour, parsed.minute);
+      if(phrase) s = phrase;
+    }
+
+    // Füller entfernen, Satzzeichen weg
+    s = stripFillers(s);
+    s = s.replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
+
+    return s;
+  }
+
+  // Matching-Text: wir bauen einen Text, der sowohl Wörter als auch ggf. die umgeformte Zeit enthält
+  function matchingHeardText(rawOrTyped){
+    let s0 = normalizeBasic(rawOrTyped);
+
+    // Wenn Zahlenzeit vorhanden, füge zusätzlich die umgangssprachliche Phrase an,
+    // damit contains-matching sicher klappt.
+    const parsed = parseTimeFromText(s0);
+    let extra = "";
+    if(parsed){
+      extra = timeDigitsToPhrase(parsed.hour, parsed.minute);
+    }
+
+    let s = stripFillers(s0);
+    s = s.replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
+
+    if(extra){
+      s = (s + " " + extra).replace(/\s+/g," ").trim();
+    }
+    return s;
+  }
+
+  // "contains" mit Wortgrenzen (damit z.B. "zehn" nicht in irgendwas matcht)
   function containsPhrase(heardNorm, phraseNorm){
     const H = " " + heardNorm + " ";
     const P = " " + phraseNorm + " ";
     return H.includes(P);
   }
 
-  // Generiert zusätzliche erlaubte Varianten:
-  // - erlaubt auch "... uhr" am Ende (bei nicht-0 Minuten)
-  // - bei voller Stunde: akzeptiert "ein", "eins", "ein uhr", "eins uhr"
+  // Erlaubte Varianten erweitern (z.B. optional "uhr", ein/eins)
   function expandAccepted(set){
     const out = new Set();
     for(const p of set){
       out.add(p);
       out.add(p + " uhr");
-      // falls Kind "... uh" oder "uhr" weglässt, sind wir eh bei p selbst.
     }
-
-    // Spezial: volle Stunde
-    // Wenn Set "ein uhr" enthält, akzeptiere auch "ein" und "eins" usw.
     for(const p of Array.from(out)){
       if(p.endsWith(" uhr")){
-        const base = p.slice(0, -4).trim();
-        out.add(base);
+        out.add(p.slice(0,-4).trim());
       }
     }
-    // Extra: eins/ein austausch
     const extras = new Set();
     out.forEach(p => {
       extras.add(p.replace(/\beins\b/g, "ein"));
@@ -401,7 +462,8 @@
     });
     extras.forEach(x => out.add(x));
 
-    return Array.from(out).map(normalizeText);
+    // final normalisieren + uhr raus (wir matchen ohne uhr)
+    return Array.from(out).map(x => stripFillers(x).toLowerCase());
   }
 
   // ------------------------
@@ -454,7 +516,6 @@
     startScreen.classList.remove("hidden");
   });
 
-  // LearningView feedback
   finishBtn.addEventListener("click", ()=>{
     finishBtn.disabled = true;
     finishBtn.textContent = "Erledigt ✔";
@@ -504,6 +565,7 @@
     feedback.textContent = "";
     feedback.className = "feedback";
     lastTranscriptRaw = "";
+    lastTranscriptPretty = "";
     fallbackInput.value = "";
     heardEl.textContent = "Erkannt: —";
 
@@ -524,8 +586,7 @@
     drawClock(q.hour, q.minute);
     progressText.textContent = `Aufgabe ${questionsDone + 1} von ${TOTAL_QUESTIONS}`;
 
-    // kleine Hilfestellung (nicht zu verräterisch, aber hilfreich)
-    expectedHint.textContent = "Sprich z.B.: „Es ist " + q.canonical.toLowerCase().replace(/\buhr\b/g,"").trim() + "“";
+    expectedHint.textContent = "Sprich z.B.: „" + q.canonical.replace(/\buhr\b/gi,"").trim() + "“";
   }
 
   function checkAnswer(){
@@ -535,24 +596,20 @@
     const typedRaw = (fallbackInput.value || "").trim();
 
     const usedText = heardRaw || typedRaw;
-
     if(!usedText){
       feedback.textContent = "Bitte zuerst sprechen (oder eintippen) und dann überprüfen.";
       feedback.className = "feedback error";
       return;
     }
 
-    const heardNorm = normalizeText(usedText);
+    // Match-Text: Füllwörter raus + falls "9:05" erkannt wurde, ergänzen wir "fünf nach neun"
+    const heardNorm = matchingHeardText(usedText);
 
-    // Prüfen: richtige Lösung muss enthalten sein
     let ok = false;
-    let matched = "";
-
     for(const phrase of currentQuestion.acceptedPhrases){
-      const p = normalizeText(phrase);
+      const p = stripFillers(phrase).toLowerCase();
       if(containsPhrase(heardNorm, p)){
         ok = true;
-        matched = phrase;
         break;
       }
     }
@@ -616,19 +673,9 @@
     const forms = timeToForms(hour, minute);
     const acceptedPhrases = expandAccepted(forms.set);
 
-    return {
-      hour, minute, label,
-      correctSet: forms.set,
-      canonical: forms.canonical,
-      acceptedPhrases
-    };
+    return { hour, minute, label, canonical: forms.canonical, acceptedPhrases };
   }
 
-  // Erlaubte Formen (wie dein Dropdown-Set, aber jetzt für "contains"-Matching):
-  // - "<ein> uhr"
-  // - "halb <nächsteStunde>"
-  // - "fünf/zehn/viertel/zwanzig nach/vor <stunde>"
-  // - "fünf vor halb <nächsteStunde>" / "fünf nach halb <nächsteStunde>"
   function timeToForms(hour, minute){
     const h = ((hour - 1) % 12) + 1;
     const nextH = (h % 12) + 1;
@@ -640,7 +687,7 @@
     let canonical = "";
 
     function add(s){
-      const t = normalizeText(s);
+      const t = stripFillers(s).toLowerCase().replace(/\s+/g," ").trim();
       set.add(t);
       if(!canonical) canonical = capFirst(t);
     }
@@ -666,8 +713,6 @@
       case 55: add(`fünf vor ${nextHourWord}`); break;
 
       default:
-        // Für 5er-Schritte, die nicht in deinem Umgangssprache-Vokabular sind,
-        // könnten wir erweitern – aber wir bleiben strikt bei den bekannten Formen.
         add(`${hourToWordEin(h)} uhr`);
     }
 
@@ -689,7 +734,6 @@
     ctx.save();
     ctx.translate(cx,cy);
 
-    // Kreis
     ctx.beginPath();
     ctx.arc(0,0,radius,0,Math.PI*2);
     ctx.fillStyle="#ffffff";
@@ -698,7 +742,6 @@
     ctx.strokeStyle="#111827";
     ctx.stroke();
 
-    // Striche
     for(let i=0;i<12;i++){
       const angle = (Math.PI/6)*i - Math.PI/2;
       const inner = radius - 10;
@@ -711,13 +754,11 @@
       ctx.stroke();
     }
 
-    // Mittelpunkt
     ctx.beginPath();
     ctx.arc(0,0,4,0,Math.PI*2);
     ctx.fillStyle="#111827";
     ctx.fill();
 
-    // Minutenzeiger
     const minuteAngle = (Math.PI/30)*minute - Math.PI/2;
     ctx.beginPath();
     ctx.moveTo(0,0);
@@ -726,7 +767,6 @@
     ctx.strokeStyle="#1f2937";
     ctx.stroke();
 
-    // Stundenzeiger
     const hourIn12 = hour % 12;
     const hourAngle = (Math.PI/6)*(hourIn12 + minute/60) - Math.PI/2;
     ctx.beginPath();
@@ -739,7 +779,6 @@
     ctx.restore();
   }
 
-  // init
   (function init(){
     statTotal.textContent = String(TOTAL_QUESTIONS);
     updateStartControls();
