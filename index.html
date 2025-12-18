@@ -2,788 +2,711 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Uhrzeit – Umgangssprache (Sprechen)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Uhrzeit – Umgangssprache (Dropdown) 2./3. Klasse</title>
   <style>
     :root{
       font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
       background:#f3f4f6;
     }
-    body{
-      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-      padding:14px;
-    }
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:14px;}
     .app{
-      background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.1);
-      padding:1.6rem 1.4rem; max-width:560px; width:100%; box-sizing:border-box;
+      background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.10);
+      padding:1.4rem 1.2rem;max-width:680px;width:100%;box-sizing:border-box;
     }
-    h1{ margin:0 0 .4rem; text-align:center; font-size:1.6rem; }
-    .subtitle{ text-align:center; color:#4b5563; margin-bottom:1rem; font-size:.95rem; }
-    .hidden{ display:none; }
-    .center{ text-align:center; }
-    .choice-grid{
-      display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:.6rem; margin:.7rem 0 .4rem;
-    }
+    h1{margin:0 0 .35rem;text-align:center;font-size:1.45rem;}
+    .subtitle{margin:0 0 1rem;text-align:center;color:#4b5563;font-size:.95rem;line-height:1.35;}
+    .row{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;justify-content:center}
+    .choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin:.7rem 0;}
     .choice-btn{
-      padding:.9rem .6rem; border-radius:16px; border:2px solid #d1d5db;
-      background:#f9fafb; font-size:1rem; font-weight:600; cursor:pointer;
-      transition:background .15s, transform .05s, border-color .15s, box-shadow .15s;
+      padding:.85rem .6rem;border-radius:14px;border:2px solid #d1d5db;background:#f9fafb;
+      font-size:1rem;font-weight:700;cursor:pointer;transition:.15s;
     }
-    .choice-btn.selected{
-      background:#2563eb; color:#fff; border-color:#1d4ed8; box-shadow:0 5px 15px rgba(37,99,235,.35);
-    }
-    .choice-btn:active{ transform:translateY(1px); }
-    .selected-info{
-      font-size:.85rem; color:#6b7280; text-align:center; min-height:1.2rem; margin:.2rem 0 .3rem;
-    }
+    .choice-btn.selected{background:#2563eb;color:#fff;border-color:#1d4ed8;box-shadow:0 5px 15px rgba(37,99,235,.35);}
     .primary-btn{
-      margin-top:.8rem; width:100%; padding:.75rem 1rem; font-size:1.1rem; border:none;
-      border-radius:999px; cursor:pointer; background:#2563eb; color:#fff; font-weight:700;
+      width:100%;margin-top:.8rem;padding:.75rem 1rem;border-radius:999px;border:none;
+      background:#2563eb;color:#fff;font-weight:800;font-size:1.05rem;cursor:pointer;
     }
-    .primary-btn:hover{ background:#1d4ed8; }
-    .primary-btn:disabled{ background:#9ca3af; cursor:not-allowed; }
+    .primary-btn:disabled{background:#9ca3af;cursor:not-allowed;}
     .secondary-btn{
-      margin-top:.4rem; width:100%; padding:.65rem 1rem; font-size:1rem;
-      border-radius:999px; border:1px solid #d1d5db; cursor:pointer; background:#f9fafb;
-      color:#111827; font-weight:600;
+      width:100%;margin-top:.45rem;padding:.65rem 1rem;border-radius:999px;border:1px solid #d1d5db;
+      background:#f9fafb;color:#111827;font-weight:700;font-size:1rem;cursor:pointer;
     }
-    .secondary-btn:hover{ background:#e5e7eb; border-color:#9ca3af; }
-
-    .progress{ text-align:center; color:#6b7280; font-size:.9rem; margin-bottom:.4rem; }
-    .tag{ display:inline-block; border-radius:999px; padding:.15rem .6rem; font-size:.8rem; background:#eff6ff; color:#1d4ed8; }
-    .clock-wrapper{ display:flex; justify-content:center; margin-top:.6rem; }
-    #clock-canvas{ background:#f9fafb; border-radius:50%; box-shadow:inset 0 0 5px rgba(0,0,0,.08); }
-
-    .answer-box{
-      margin-top:1rem;
-      border:1px solid #e5e7eb;
-      background:#f9fafb;
-      border-radius:14px;
-      padding:.9rem;
+    .selected-info{min-height:1.2rem;text-align:center;color:#6b7280;font-size:.88rem;margin-top:.25rem}
+    .hidden{display:none;}
+    .progress{font-size:.92rem;color:#6b7280;text-align:center;margin:.2rem 0 .6rem;}
+    .tag{display:inline-block;border-radius:999px;padding:.12rem .65rem;font-size:.82rem;background:#eff6ff;color:#1d4ed8;font-weight:700}
+    .clock-wrap{display:flex;justify-content:center;margin:.55rem 0 .35rem;}
+    #clock{background:#f9fafb;border-radius:50%;box-shadow:inset 0 0 5px rgba(0,0,0,.08);max-width:240px;width:240px;height:240px}
+    .dropdowns{
+      display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;align-items:end;margin:.8rem 0 .3rem;
     }
-    .equation{ text-align:center; margin:.4rem 0 .2rem; font-size:1.05rem; color:#111827; font-weight:700; }
-    .mic-row{ display:grid; grid-template-columns:1fr; gap:.6rem; margin-top:.6rem; }
-    @media (min-width:520px){
-      .mic-row{ grid-template-columns: 1fr 1fr; }
+    label{font-size:.85rem;color:#6b7280;font-weight:700}
+    select{
+      width:100%;padding:.65rem .6rem;border-radius:12px;border:2px solid #d1d5db;background:#fff;
+      font-size:1.05rem;font-weight:800;letter-spacing:.02em;
     }
-    .mic-btn{
-      width:100%;
-      padding:.75rem 1rem;
-      font-size:1.05rem;
-      border-radius:999px;
-      border:none;
-      cursor:pointer;
-      font-weight:800;
-      background:#111827;
-      color:#fff;
+    .answer-line{
+      display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:.6rem;
+      font-size:1.02rem;color:#374151;
     }
-    .mic-btn.listening{ background:#dc2626; }
-    .mic-btn:disabled{ background:#9ca3af; cursor:not-allowed; }
-    .input-fallback{
-      width:100%;
-      padding:.7rem .8rem;
-      border-radius:12px;
-      border:2px solid #d1d5db;
-      background:#fff;
-      font-size:1.02rem;
-      font-weight:650;
-      color:#111827;
-      outline:none;
-      box-sizing:border-box;
-    }
-    .input-fallback:focus{ border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15); }
-
-    .heard{
-      margin-top:.6rem;
-      font-size:.95rem;
-      color:#374151;
-      background:#fff;
-      border:1px solid #e5e7eb;
-      border-radius:12px;
-      padding:.6rem .7rem;
-      min-height:2.2rem;
-      word-break:break-word;
-    }
-    .hint{ font-size:.85rem; color:#6b7280; margin-top:.5rem; line-height:1.35; }
-    .feedback{ min-height:1.4rem; margin-top:.6rem; font-weight:750; text-align:center; }
-    .feedback.ok{ color:#15803d; }
-    .feedback.error{ color:#b91c1c; }
-
-    .stats{ margin-top:.9rem; font-size:.95rem; color:#374151; }
-    .small-note{ font-size:.85rem; color:#6b7280; margin-top:.4rem; }
-    .badge{
-      display:inline-block; padding:.15rem .55rem; border-radius:999px;
-      font-size:.78rem; border:1px solid #e5e7eb; background:#fff; color:#374151;
+    .feedback{min-height:1.4rem;text-align:center;font-weight:800;margin-top:.55rem}
+    .ok{color:#15803d;}
+    .bad{color:#b91c1c;}
+    .stats{margin-top:.7rem;font-size:.95rem;color:#374151;line-height:1.35}
+    @media (max-width:560px){
+      .dropdowns{grid-template-columns:1fr;gap:.65rem}
+      #clock{width:210px;height:210px}
     }
   </style>
 </head>
 <body>
 <div class="app">
-  <h1>Wie spät ist es?</h1>
-  <div class="subtitle">
-    Lies die analoge Uhr und <strong>sage</strong> die Uhrzeit in Umgangssprache.<br>
-    Beispiele: „Viertel vor Zehn“, „Fünf nach Zwei“, „Halb Neun“, „Ein Uhr“.
-  </div>
+  <h1>Uhrzeit – Umgangssprache</h1>
+  <p class="subtitle">
+    Schau die Uhr an und wähle die passende umgangssprachliche Zeit.<br>
+    Beispiel: <strong>fünf</strong> <strong>vor halb</strong> <strong>neun</strong>
+  </p>
 
   <!-- START -->
-  <div id="start-screen">
-    <div class="center">
-      <p>Bitte eine <strong>Klasse</strong> und eine <strong>Schwierigkeit</strong> auswählen.</p>
+  <div id="start">
+    <div class="row" style="margin-top:.2rem;">
+      <div style="font-size:.92rem;color:#6b7280;font-weight:800;">Klasse</div>
+    </div>
+    <div class="choice-grid" id="gradeGrid">
+      <button class="choice-btn grade" data-grade="2">2. klasse</button>
+      <button class="choice-btn grade" data-grade="3">3. klasse</button>
     </div>
 
-    <div class="center" style="margin-top:.5rem;">Klasse</div>
-    <div class="choice-grid" id="grade-grid">
-      <button type="button" class="choice-btn grade-btn" data-grade="2">2. Klasse</button>
-      <button type="button" class="choice-btn grade-btn" data-grade="3">3. Klasse</button>
+    <div class="row" style="margin-top:.2rem;">
+      <div style="font-size:.92rem;color:#6b7280;font-weight:800;">stimme (tts)</div>
+    </div>
+    <div class="row" style="margin-top:.35rem;">
+      <select id="voiceSelect" aria-label="stimme wählen"></select>
     </div>
 
-    <div class="center" style="margin-top:1rem;">Schwierigkeit</div>
-    <div class="choice-grid" id="difficulty-grid">
-      <button type="button" class="choice-btn difficulty-btn" data-diff="easy">einfach</button>
-      <button type="button" class="choice-btn difficulty-btn" data-diff="hard">schwierig</button>
-    </div>
-
-    <div class="selected-info" id="selected-info"></div>
-    <button class="primary-btn" id="start-btn" disabled>Los!</button>
-
-    <div class="small-note center" id="sr-note"></div>
+    <div class="selected-info" id="startInfo">bitte klasse auswählen.</div>
+    <button class="primary-btn" id="startBtn" disabled>los!</button>
   </div>
 
   <!-- QUIZ -->
-  <div id="quiz-screen" class="hidden">
-    <div class="progress" id="progress-text"></div>
-    <div class="center">
-      <span class="tag" id="variant-label"></span>
-      <div class="equation">Sage die passende Uhrzeit:</div>
-      <div class="small-note"><span class="badge">Tipp</span> Es reicht, wenn die richtige Lösung <strong>im Gesagten enthalten</strong> ist (z.B. „… viertel vor zehn …“).</div>
-    </div>
+  <div id="quiz" class="hidden">
+    <div class="progress" id="progress"></div>
+    <div class="row"><span class="tag" id="variantTag"></span></div>
 
-    <div class="clock-wrapper">
-      <canvas id="clock-canvas" width="220" height="220"></canvas>
-    </div>
+    <div class="clock-wrap"><canvas id="clock" width="240" height="240"></canvas></div>
 
-    <div class="answer-box">
-      <div class="mic-row">
-        <button class="mic-btn" id="mic-btn">🎤 Sprechen</button>
-        <button class="secondary-btn" id="check-btn" style="margin-top:0;">Überprüfen</button>
+    <div class="dropdowns">
+      <div>
+        <label for="p1">minuten</label>
+        <select id="p1"></select>
       </div>
-
-      <div id="fallback-wrap" class="hidden" style="margin-top:.6rem;">
-        <input id="fallback-input" class="input-fallback" placeholder="Falls Sprechen nicht geht: hier eintippen (z.B. viertel vor zehn)" />
-        <div class="hint">Browser ohne Spracherkennung: tippe die Antwort. (Empfohlen: Chrome/Edge)</div>
+      <div>
+        <label for="p2">form</label>
+        <select id="p2"></select>
       </div>
-
-      <div class="heard" id="heard">Erkannt: —</div>
-      <div class="feedback" id="feedback"></div>
-      <div class="hint" id="expected-hint"></div>
+      <div>
+        <label for="p3">stunde</label>
+        <select id="p3"></select>
+      </div>
     </div>
+
+    <div class="answer-line">
+      <button class="secondary-btn" id="speakBtn" style="max-width:320px;">🔊 zeit nochmals hören</button>
+      <button class="primary-btn" id="checkBtn" style="max-width:320px;">prüfen</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
 
     <div class="stats">
-      Richtig: <span id="stat-correct">0</span> / <span id="stat-total">30</span><br>
-      Falsche Versuche: <span id="stat-wrong">0</span><br>
-      Modus: <span id="stat-mode"></span>
+      richtig: <span id="statOk">0</span> / <span id="statTotal">20</span><br>
+      fehler: <span id="statBad">0</span>
     </div>
   </div>
 
   <!-- RESULT -->
-  <div id="result-screen" class="hidden center">
-    <h2>Fertig! 🎉</h2>
-    <p id="result-summary"></p>
-    <p style="margin-top:.8rem; font-size:.9rem; color:#4b5563;">
-      Wenn du fertig bist, klicke auf <strong>„Fertig“</strong>, damit LearningView den Auftrag als erledigt markiert.<br>
-      Oder klicke auf <strong>„Weiter üben“</strong>, um zur Auswahl zurückzukehren.
+  <div id="result" class="hidden" style="text-align:center;">
+    <h2 style="margin:.2rem 0 .35rem;">fertig! 🎉</h2>
+    <p id="summary" style="margin:.25rem 0 .8rem;color:#374151;"></p>
+    <p style="margin-top:0.3rem; font-size:0.9rem; color:#4b5563;line-height:1.35;">
+      wenn du mit deinem resultat zufrieden bist,<br>
+      klicke <strong>„fertig“</strong>, damit learningview den auftrag als erledigt markiert.
     </p>
-    <button class="primary-btn" id="finish-btn">Fertig</button>
-    <button class="secondary-btn" id="restart-btn">Weiter üben</button>
+    <button class="primary-btn" id="finishBtn">fertig</button>
+    <button class="secondary-btn" id="againBtn">weiter üben</button>
   </div>
 </div>
 
 <script>
-  const TOTAL_QUESTIONS = 30;
+  // -----------------------------
+  // Einstellungen
+  // -----------------------------
+  const TOTAL = 20;
 
-  const GRADE_LABELS = { 2: "2. Klasse", 3: "3. Klasse" };
-  const DIFF_LABELS = { easy: "einfach", hard: "schwierig" };
+  // 2. Klasse: volle/halbe/viertel + 5-min Schritte? -> du wolltest: "volle 5 minuten-schritte"
+  // Ich interpretiere:
+  // - 2. Klasse: Minuten nur in 5er-Schritten (0,5,10,...,55) + die umgangssprachlichen Formen, die dazu passen
+  // - 3. Klasse: ebenso, aber mehr "vor/nach" und "vor halb/nach halb" (immer 5er-Schritte)
+  // Wichtig: Bewertung muss "halb drei" korrekt erkennen (= 2:30) und nicht falsch werten.
+  //
+  // Zusätzlich: ALLE Dropdown-Wörter klein.
 
-  let selectedGrade = null;
-  let selectedDifficulty = null;
+  const HOUR_WORDS = ["eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf"];
 
-  let questionsDone = 0;
-  let correctAnswers = 0;
-  let wrongAnswers = 0;
-  let usedQuestions = [];
+  const MIN_WORDS = ["", "fünf","zehn","viertel","zwanzig"]; // "" nur für "punkt" oder "halb"
+  const FORM_WORDS = ["punkt","nach","vor","halb","vor halb","nach halb"];
 
-  let currentQuestion = null;
+  // -----------------------------
+  // State
+  // -----------------------------
+  let grade = null; // "2" | "3"
+  let correct = 0, wrong = 0, done = 0;
+  let used = new Set();
+  let current = null; // {h, m}
+  let selectedVoice = null;
+  let voices = [];
 
-  const startScreen = document.getElementById("start-screen");
-  const quizScreen = document.getElementById("quiz-screen");
-  const resultScreen = document.getElementById("result-screen");
+  // -----------------------------
+  // DOM
+  // -----------------------------
+  const startEl = document.getElementById("start");
+  const quizEl = document.getElementById("quiz");
+  const resultEl = document.getElementById("result");
 
-  const gradeGrid = document.getElementById("grade-grid");
-  const difficultyGrid = document.getElementById("difficulty-grid");
-  const selectedInfo = document.getElementById("selected-info");
-  const startBtn = document.getElementById("start-btn");
-  const srNote = document.getElementById("sr-note");
+  const gradeGrid = document.getElementById("gradeGrid");
+  const startInfo = document.getElementById("startInfo");
+  const startBtn = document.getElementById("startBtn");
 
-  const progressText = document.getElementById("progress-text");
-  const variantLabel = document.getElementById("variant-label");
-  const feedback = document.getElementById("feedback");
-  const heardEl = document.getElementById("heard");
-  const expectedHint = document.getElementById("expected-hint");
+  const voiceSelect = document.getElementById("voiceSelect");
 
-  const statCorrect = document.getElementById("stat-correct");
-  const statTotal = document.getElementById("stat-total");
-  const statWrong = document.getElementById("stat-wrong");
-  const statMode = document.getElementById("stat-mode");
+  const progressEl = document.getElementById("progress");
+  const variantTag = document.getElementById("variantTag");
+  const canvas = document.getElementById("clock");
+  const ctx = canvas.getContext("2d");
 
-  const restartBtn = document.getElementById("restart-btn");
-  const finishBtn = document.getElementById("finish-btn");
-  const resultSummary = document.getElementById("result-summary");
+  const p1Sel = document.getElementById("p1");
+  const p2Sel = document.getElementById("p2");
+  const p3Sel = document.getElementById("p3");
 
-  const micBtn = document.getElementById("mic-btn");
-  const checkBtn = document.getElementById("check-btn");
+  const speakBtn = document.getElementById("speakBtn");
+  const checkBtn = document.getElementById("checkBtn");
+  const feedbackEl = document.getElementById("feedback");
 
-  const fallbackWrap = document.getElementById("fallback-wrap");
-  const fallbackInput = document.getElementById("fallback-input");
+  const statOk = document.getElementById("statOk");
+  const statBad = document.getElementById("statBad");
+  const statTotal = document.getElementById("statTotal");
 
-  const clockCanvas = document.getElementById("clock-canvas");
-  const clockCtx = clockCanvas.getContext("2d");
+  const summaryEl = document.getElementById("summary");
+  const finishBtn = document.getElementById("finishBtn");
+  const againBtn = document.getElementById("againBtn");
 
-  // ------------------------
-  // SpeechRecognition
-  // ------------------------
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognizer = null;
-  let isListening = false;
-
-  // Roh-Text vom Browser (egal ob Wörter oder "9:05")
-  let lastTranscriptRaw = "";
-  // Unsere "Wörter"-Anzeige (z.B. aus "9:05" -> "fünf nach neun")
-  let lastTranscriptPretty = "";
-
-  function setupSpeechRecognition(){
-    if(!SR){
-      recognizer = null;
-      micBtn.disabled = true;
-      micBtn.textContent = "🎤 Nicht verfügbar";
-      fallbackWrap.classList.remove("hidden");
-      srNote.textContent = "Hinweis: Spracherkennung funktioniert am zuverlässigsten in Chrome/Edge.";
-      return;
-    }
-    recognizer = new SR();
-    recognizer.lang = "de-CH";
-    recognizer.interimResults = false;
-    recognizer.maxAlternatives = 1;
-    recognizer.continuous = false;
-
-    recognizer.onstart = () => {
-      isListening = true;
-      micBtn.classList.add("listening");
-      micBtn.textContent = "⏹ Stop";
-      feedback.textContent = "";
-      feedback.className = "feedback";
-      heardEl.textContent = "Erkannt: …";
-    };
-
-    recognizer.onend = () => {
-      isListening = false;
-      micBtn.classList.remove("listening");
-      micBtn.textContent = "🎤 Sprechen";
-    };
-
-    recognizer.onerror = (e) => {
-      feedback.textContent = "Sprach-Fehler: " + (e.error || "unbekannt");
-      feedback.className = "feedback error";
-      fallbackWrap.classList.remove("hidden");
-    };
-
-    recognizer.onresult = (e) => {
-      const t = e.results?.[0]?.[0]?.transcript || "";
-      lastTranscriptRaw = t;
-
-      // WICHTIG: Anzeige wird "wortig" gemacht (auch wenn Browser "9:05" liefert)
-      lastTranscriptPretty = prettyHeardText(t);
-
-      heardEl.textContent = "Erkannt: " + (lastTranscriptPretty || "—");
-    };
-
-    srNote.textContent = "Hinweis: Mikrofon-Berechtigung nötig. Starte mit Klick auf „Sprechen“.";
+  // -----------------------------
+  // UI Helpers
+  // -----------------------------
+  function setFeedback(text, ok){
+    feedbackEl.textContent = text;
+    feedbackEl.className = "feedback " + (ok ? "ok" : "bad");
+  }
+  function clearFeedback(){
+    feedbackEl.textContent = "";
+    feedbackEl.className = "feedback";
   }
 
-  micBtn.addEventListener("click", () => {
-    if(!recognizer){
-      fallbackWrap.classList.remove("hidden");
+  // -----------------------------
+  // Voice / TTS
+  // -----------------------------
+  function loadVoices(){
+    if (!("speechSynthesis" in window)) {
+      voiceSelect.innerHTML = `<option value="">tts nicht verfügbar</option>`;
+      voiceSelect.disabled = true;
       return;
     }
-    if(isListening){
-      try{ recognizer.stop(); }catch(_){}
-      return;
-    }
+    voices = window.speechSynthesis.getVoices() || [];
+    // bevorzugt: deutsch, weiblich ist im Browser nicht zuverlässig erkennbar -> wir wählen "de" und dann erste passende
+    const deVoices = voices.filter(v => (v.lang || "").toLowerCase().startsWith("de"));
+    const list = deVoices.length ? deVoices : voices;
+
+    voiceSelect.innerHTML = "";
+    list.forEach((v, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = `${v.name} (${v.lang})`;
+      voiceSelect.appendChild(opt);
+    });
+
+    selectedVoice = list[0] || null;
+  }
+
+  function getSelectedVoice(){
+    if (!("speechSynthesis" in window)) return null;
+    const all = (window.speechSynthesis.getVoices() || []);
+    const de = all.filter(v => (v.lang || "").toLowerCase().startsWith("de"));
+    const list = de.length ? de : all;
+    const idx = Number(voiceSelect.value || 0);
+    return list[idx] || list[0] || null;
+  }
+
+  function speak(text){
+    if (!("speechSynthesis" in window)) return;
     try{
-      lastTranscriptRaw = "";
-      lastTranscriptPretty = "";
-      recognizer.start();
-    }catch(err){
-      feedback.textContent = "Bitte kurz warten und nochmals auf „Sprechen“ klicken.";
-      feedback.className = "feedback error";
-    }
-  });
-
-  // ------------------------
-  // Helpers
-  // ------------------------
-  function randomInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
-  function randomIntStep(min, max, step){
-    const count = Math.floor((max-min)/step)+1;
-    return min + randomInt(0, count-1)*step;
-  }
-  function capFirst(s){ return s ? (s.charAt(0).toUpperCase()+s.slice(1)) : s; }
-
-  const NUM_WORD = {
-    0:"null",1:"eins",2:"zwei",3:"drei",4:"vier",5:"fünf",6:"sechs",7:"sieben",8:"acht",9:"neun",
-    10:"zehn",11:"elf",12:"zwölf",13:"dreizehn",14:"vierzehn",15:"fünfzehn",16:"sechzehn",17:"siebzehn",
-    18:"achtzehn",19:"neunzehn",20:"zwanzig",25:"fünfundzwanzig",30:"dreißig",35:"fünfunddreißig",
-    40:"vierzig",45:"fünfundvierzig",50:"fünfzig",55:"fünfundfünfzig"
-  };
-
-  function hourToWord(h){
-    const map = {1:"eins",2:"zwei",3:"drei",4:"vier",5:"fünf",6:"sechs",7:"sieben",8:"acht",9:"neun",10:"zehn",11:"elf",12:"zwölf"};
-    return map[h] || String(h);
-  }
-  function hourToWordEin(h){ return h === 1 ? "ein" : hourToWord(h); }
-
-  // Füllwörter entfernen (nur für Matching/Anzeige)
-  function stripFillers(s){
-    s = (s || "").toLowerCase();
-    // typische Füllteile entfernen
-    const fillers = [
-      "es ist", "das ist", "jetzt ist es", "nun ist es", "bitte", "äh", "hm", "also"
-    ];
-    for(const f of fillers){
-      s = s.replace(new RegExp("\\b" + f.replace(/\s+/g,"\\s+") + "\\b", "g"), " ");
-    }
-    // "uhr" generell entfernen (wir bewerten ohne "uhr")
-    s = s.replace(/\buhr\b/g, " ");
-    return s.replace(/\s+/g," ").trim();
-  }
-
-  // Erkenne Muster wie 9:05 oder 9.05 oder 09:05
-  function parseTimeFromText(s){
-    const m = (s || "").match(/\b([0-2]?\d)\s*[:.]\s*([0-5]\d)\b/);
-    if(!m) return null;
-    let hh = parseInt(m[1],10);
-    let mm = parseInt(m[2],10);
-    if(Number.isNaN(hh) || Number.isNaN(mm)) return null;
-    if(hh === 0) hh = 12;
-    // in 12h umwandeln
-    hh = ((hh - 1) % 12) + 1;
-    return {hour: hh, minute: mm};
-  }
-
-  // Normalisierung fürs Matching (klein, sonderzeichen weg, spaces)
-  function normalizeBasic(s){
-    s = (s || "").toLowerCase();
-    s = s.replace(/[^\p{L}\p{N}\s:.]/gu, " "); // : . behalten für parseTime
-    s = s.replace(/\s+/g," ").trim();
-    return s;
-  }
-
-  // Aus einer "9:05" Erkennung wird eine umgangssprachliche Phrase,
-  // die zu unserem Bewertungs-Vokabular passt (wenn möglich).
-  function timeDigitsToPhrase(hour, minute){
-    // Nur unsere „bekannten“ Minutenmuster -> Phrase
-    const forms = timeToForms(hour, minute);
-    // canonical ist z.B. "Fünf nach neun"
-    return forms?.canonical ? forms.canonical.toLowerCase().replace(/\buhr\b/g,"").trim() : "";
-  }
-
-  // Anzeige: immer möglichst Wörter
-  function prettyHeardText(raw){
-    let s = normalizeBasic(raw);
-
-    // Wenn Browser Zahlenzeit liefert: 9:05 -> in Wörter umformen
-    const parsed = parseTimeFromText(s);
-    if(parsed){
-      const phrase = timeDigitsToPhrase(parsed.hour, parsed.minute);
-      if(phrase) s = phrase;
-    }
-
-    // Füller entfernen, Satzzeichen weg
-    s = stripFillers(s);
-    s = s.replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
-
-    return s;
-  }
-
-  // Matching-Text: wir bauen einen Text, der sowohl Wörter als auch ggf. die umgeformte Zeit enthält
-  function matchingHeardText(rawOrTyped){
-    let s0 = normalizeBasic(rawOrTyped);
-
-    // Wenn Zahlenzeit vorhanden, füge zusätzlich die umgangssprachliche Phrase an,
-    // damit contains-matching sicher klappt.
-    const parsed = parseTimeFromText(s0);
-    let extra = "";
-    if(parsed){
-      extra = timeDigitsToPhrase(parsed.hour, parsed.minute);
-    }
-
-    let s = stripFillers(s0);
-    s = s.replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
-
-    if(extra){
-      s = (s + " " + extra).replace(/\s+/g," ").trim();
-    }
-    return s;
-  }
-
-  // "contains" mit Wortgrenzen (damit z.B. "zehn" nicht in irgendwas matcht)
-  function containsPhrase(heardNorm, phraseNorm){
-    const H = " " + heardNorm + " ";
-    const P = " " + phraseNorm + " ";
-    return H.includes(P);
-  }
-
-  // Erlaubte Varianten erweitern (z.B. optional "uhr", ein/eins)
-  function expandAccepted(set){
-    const out = new Set();
-    for(const p of set){
-      out.add(p);
-      out.add(p + " uhr");
-    }
-    for(const p of Array.from(out)){
-      if(p.endsWith(" uhr")){
-        out.add(p.slice(0,-4).trim());
-      }
-    }
-    const extras = new Set();
-    out.forEach(p => {
-      extras.add(p.replace(/\beins\b/g, "ein"));
-      extras.add(p.replace(/\bein\b/g, "eins"));
-    });
-    extras.forEach(x => out.add(x));
-
-    // final normalisieren + uhr raus (wir matchen ohne uhr)
-    return Array.from(out).map(x => stripFillers(x).toLowerCase());
-  }
-
-  // ------------------------
-  // Startauswahl
-  // ------------------------
-  gradeGrid.querySelectorAll(".grade-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const g = Number(btn.dataset.grade);
-      selectedGrade = (selectedGrade === g) ? null : g;
-      gradeGrid.querySelectorAll(".grade-btn").forEach(b=>{
-        b.classList.toggle("selected", Number(b.dataset.grade) === selectedGrade);
-      });
-      updateStartControls();
-    });
-  });
-
-  difficultyGrid.querySelectorAll(".difficulty-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const d = btn.dataset.diff;
-      selectedDifficulty = (selectedDifficulty === d) ? null : d;
-      difficultyGrid.querySelectorAll(".difficulty-btn").forEach(b=>{
-        b.classList.toggle("selected", b.dataset.diff === selectedDifficulty);
-      });
-      updateStartControls();
-    });
-  });
-
-  function updateStartControls(){
-    if(!selectedGrade && !selectedDifficulty){
-      selectedInfo.textContent = "Keine Klasse und Schwierigkeit ausgewählt.";
-      startBtn.disabled = true; return;
-    }
-    if(!selectedGrade){
-      selectedInfo.textContent = "Bitte eine Klasse auswählen.";
-      startBtn.disabled = true; return;
-    }
-    if(!selectedDifficulty){
-      selectedInfo.textContent = "Bitte eine Schwierigkeit auswählen.";
-      startBtn.disabled = true; return;
-    }
-    selectedInfo.textContent = "Ausgewählt: " + GRADE_LABELS[selectedGrade] + ", " + DIFF_LABELS[selectedDifficulty];
-    startBtn.disabled = false;
-  }
-
-  startBtn.addEventListener("click", startTraining);
-
-  restartBtn.addEventListener("click", ()=>{
-    quizScreen.classList.add("hidden");
-    resultScreen.classList.add("hidden");
-    startScreen.classList.remove("hidden");
-  });
-
-  finishBtn.addEventListener("click", ()=>{
-    finishBtn.disabled = true;
-    finishBtn.textContent = "Erledigt ✔";
-    try{
-      if(window.parent && window.parent !== window){
-        window.parent.postMessage("AppSolved","*");
-      }
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const v = getSelectedVoice();
+      if (v) u.voice = v;
+      u.lang = v?.lang || "de-CH";
+      u.rate = 0.92;
+      window.speechSynthesis.speak(u);
     }catch(e){
-      console.warn("LearningView-Rückmeldung nicht möglich:", e);
+      console.warn("tts fehler:", e);
     }
+  }
+
+  voiceSelect.addEventListener("change", () => {
+    selectedVoice = getSelectedVoice();
   });
 
-  checkBtn.addEventListener("click", checkAnswer);
-  fallbackInput.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter"){
-      e.preventDefault();
-      checkAnswer();
-    }
-  });
-
-  function startTraining(){
-    if(!selectedGrade || !selectedDifficulty) return;
-
-    questionsDone = 0;
-    correctAnswers = 0;
-    wrongAnswers = 0;
-    usedQuestions = [];
-
-    statCorrect.textContent = "0";
-    statWrong.textContent = "0";
-    statTotal.textContent = String(TOTAL_QUESTIONS);
-    statMode.textContent = `${GRADE_LABELS[selectedGrade]} – ${DIFF_LABELS[selectedDifficulty]}`;
-
-    feedback.textContent = "";
-    feedback.className = "feedback";
-    heardEl.textContent = "Erkannt: —";
-    expectedHint.textContent = "";
-
-    startScreen.classList.add("hidden");
-    resultScreen.classList.add("hidden");
-    quizScreen.classList.remove("hidden");
-
-    newQuestion();
+  // voices laden (Browser teils async)
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
   }
+  loadVoices();
 
-  function newQuestion(){
-    feedback.textContent = "";
-    feedback.className = "feedback";
-    lastTranscriptRaw = "";
-    lastTranscriptPretty = "";
-    fallbackInput.value = "";
-    heardEl.textContent = "Erkannt: —";
-
-    let q, tries = 0;
-    while(true){
-      q = generateTimeQuestion(selectedGrade, selectedDifficulty);
-      const key = `${q.hour}-${q.minute}-${selectedGrade}-${selectedDifficulty}`;
-      if(!usedQuestions.includes(key)){
-        usedQuestions.push(key);
-        break;
-      }
-      if(++tries > 400) break;
-    }
-
-    currentQuestion = q;
-    variantLabel.textContent = q.label;
-
-    drawClock(q.hour, q.minute);
-    progressText.textContent = `Aufgabe ${questionsDone + 1} von ${TOTAL_QUESTIONS}`;
-
-    expectedHint.textContent = "Sprich z.B.: „" + q.canonical.replace(/\buhr\b/gi,"").trim() + "“";
-  }
-
-  function checkAnswer(){
-    if(!currentQuestion) return;
-
-    const heardRaw = (lastTranscriptRaw || "").trim();
-    const typedRaw = (fallbackInput.value || "").trim();
-
-    const usedText = heardRaw || typedRaw;
-    if(!usedText){
-      feedback.textContent = "Bitte zuerst sprechen (oder eintippen) und dann überprüfen.";
-      feedback.className = "feedback error";
-      return;
-    }
-
-    // Match-Text: Füllwörter raus + falls "9:05" erkannt wurde, ergänzen wir "fünf nach neun"
-    const heardNorm = matchingHeardText(usedText);
-
-    let ok = false;
-    for(const phrase of currentQuestion.acceptedPhrases){
-      const p = stripFillers(phrase).toLowerCase();
-      if(containsPhrase(heardNorm, p)){
-        ok = true;
-        break;
-      }
-    }
-
-    if(ok){
-      correctAnswers++;
-      statCorrect.textContent = String(correctAnswers);
-      feedback.textContent = "Richtig! 👍";
-      feedback.className = "feedback ok";
-    }else{
-      wrongAnswers++;
-      statWrong.textContent = String(wrongAnswers);
-      feedback.textContent = "Leider falsch. Beispiel richtig: " + currentQuestion.canonical;
-      feedback.className = "feedback error";
-    }
-
-    questionsDone++;
-    if(questionsDone >= TOTAL_QUESTIONS){
-      setTimeout(endTraining, 700);
-    }else{
-      setTimeout(newQuestion, 700);
-    }
-  }
-
-  function endTraining(){
-    quizScreen.classList.add("hidden");
-    resultScreen.classList.remove("hidden");
-
-    const quote = (correctAnswers / TOTAL_QUESTIONS * 100).toFixed(0);
-    const modeText = `${GRADE_LABELS[selectedGrade]}, ${DIFF_LABELS[selectedDifficulty]}`;
-
-    resultSummary.innerHTML =
-      `Du hast <strong>${TOTAL_QUESTIONS}</strong> Uhrzeiten im Modus <strong>${modeText}</strong> gelöst.<br>` +
-      `Davon waren <strong>${correctAnswers}</strong> richtig (<strong>${quote}%</strong>).<br>` +
-      `Du hattest insgesamt <strong>${wrongAnswers}</strong> falsche Versuche.`;
-  }
-
-  // ------------------------
-  // Aufgabengenerator
-  // ------------------------
-  function generateTimeQuestion(grade, difficulty){
-    let hour, minute, label;
-
-    if(grade === 2){
-      if(difficulty === "easy"){
-        hour = randomInt(1,12);
-        minute = Math.random() < 0.5 ? 0 : 30;
-        label = "Volle und halbe Stunden";
-      }else{
-        const minuteChoices = [0,10,15,20,30,40,45,50];
-        hour = randomInt(1,12);
-        minute = minuteChoices[randomInt(0, minuteChoices.length-1)];
-        label = "10-Minuten & Viertel";
-      }
-    }else{
-      hour = randomInt(1,12);
-      minute = randomIntStep(0,55,5);
-      label = (difficulty === "easy") ? "5-Minuten-Schritte" : "5-Minuten-Schritte (Mix)";
-    }
-
-    const forms = timeToForms(hour, minute);
-    const acceptedPhrases = expandAccepted(forms.set);
-
-    return { hour, minute, label, canonical: forms.canonical, acceptedPhrases };
-  }
-
-  function timeToForms(hour, minute){
-    const h = ((hour - 1) % 12) + 1;
-    const nextH = (h % 12) + 1;
-
-    const hourWord = hourToWord(h);
-    const nextHourWord = hourToWord(nextH);
-
-    const set = new Set();
-    let canonical = "";
-
-    function add(s){
-      const t = stripFillers(s).toLowerCase().replace(/\s+/g," ").trim();
-      set.add(t);
-      if(!canonical) canonical = capFirst(t);
-    }
-
-    if(minute === 0){
-      add(`${hourToWordEin(h)} uhr`);
-      return { set, canonical };
-    }
-
-    switch(minute){
-      case 5:  add(`fünf nach ${hourWord}`); break;
-      case 10: add(`zehn nach ${hourWord}`); break;
-      case 15: add(`viertel nach ${hourWord}`); break;
-      case 20: add(`zwanzig nach ${hourWord}`); break;
-
-      case 25: add(`fünf vor halb ${nextHourWord}`); break;
-      case 30: add(`halb ${nextHourWord}`); break;
-      case 35: add(`fünf nach halb ${nextHourWord}`); break;
-
-      case 40: add(`zwanzig vor ${nextHourWord}`); break;
-      case 45: add(`viertel vor ${nextHourWord}`); break;
-      case 50: add(`zehn vor ${nextHourWord}`); break;
-      case 55: add(`fünf vor ${nextHourWord}`); break;
-
-      default:
-        add(`${hourToWordEin(h)} uhr`);
-    }
-
-    return { set, canonical };
-  }
-
-  // ------------------------
-  // Analoge Uhr zeichnen
-  // ------------------------
+  // -----------------------------
+  // Clock
+  // -----------------------------
   function drawClock(hour, minute){
-    const ctx = clockCtx;
-    const w = clockCanvas.width;
-    const h = clockCanvas.height;
-    const radius = Math.min(w,h)/2 - 10;
-    const cx = w/2;
-    const cy = h/2;
+    const w = canvas.width, h = canvas.height;
+    const r = Math.min(w,h)/2 - 10;
+    const cx = w/2, cy = h/2;
 
     ctx.clearRect(0,0,w,h);
     ctx.save();
-    ctx.translate(cx,cy);
+    ctx.translate(cx, cy);
 
+    // face
     ctx.beginPath();
-    ctx.arc(0,0,radius,0,Math.PI*2);
+    ctx.arc(0,0,r,0,Math.PI*2);
     ctx.fillStyle="#ffffff";
     ctx.fill();
     ctx.lineWidth=3;
     ctx.strokeStyle="#111827";
     ctx.stroke();
 
-    for(let i=0;i<12;i++){
-      const angle = (Math.PI/6)*i - Math.PI/2;
-      const inner = radius - 10;
-      const outer = radius - (i%3===0 ? 18 : 14);
+    // ticks
+    for(let i=0;i<60;i++){
+      const a = (Math.PI/30)*i - Math.PI/2;
+      const isHour = (i%5===0);
+      const inner = r - (isHour ? 18 : 10);
+      const outer = r - 4;
       ctx.beginPath();
-      ctx.moveTo(inner*Math.cos(angle), inner*Math.sin(angle));
-      ctx.lineTo(outer*Math.cos(angle), outer*Math.sin(angle));
-      ctx.lineWidth = (i%3===0)?3:1.5;
+      ctx.moveTo(inner*Math.cos(a), inner*Math.sin(a));
+      ctx.lineTo(outer*Math.cos(a), outer*Math.sin(a));
+      ctx.lineWidth = isHour ? 3 : 1.4;
       ctx.strokeStyle="#111827";
       ctx.stroke();
     }
 
+    // center
     ctx.beginPath();
     ctx.arc(0,0,4,0,Math.PI*2);
     ctx.fillStyle="#111827";
     ctx.fill();
 
-    const minuteAngle = (Math.PI/30)*minute - Math.PI/2;
+    // minute hand (blue)
+    const ma = (Math.PI/30)*minute - Math.PI/2;
     ctx.beginPath();
     ctx.moveTo(0,0);
-    ctx.lineTo((radius-22)*Math.cos(minuteAngle), (radius-22)*Math.sin(minuteAngle));
-    ctx.lineWidth=3;
-    ctx.strokeStyle="#1f2937";
+    ctx.lineTo((r-24)*Math.cos(ma),(r-24)*Math.sin(ma));
+    ctx.lineWidth=5;
+    ctx.lineCap="round";
+    ctx.strokeStyle="#2563eb";
     ctx.stroke();
 
-    const hourIn12 = hour % 12;
-    const hourAngle = (Math.PI/6)*(hourIn12 + minute/60) - Math.PI/2;
+    // hour hand (red)
+    const h12 = hour % 12;
+    const ha = (Math.PI/6)*(h12 + minute/60) - Math.PI/2;
     ctx.beginPath();
     ctx.moveTo(0,0);
-    ctx.lineTo((radius-45)*Math.cos(hourAngle), (radius-45)*Math.sin(hourAngle));
-    ctx.lineWidth=4;
-    ctx.strokeStyle="#111827";
+    ctx.lineTo((r-52)*Math.cos(ha),(r-52)*Math.sin(ha));
+    ctx.lineWidth=7;
+    ctx.lineCap="round";
+    ctx.strokeStyle="#ef4444";
     ctx.stroke();
 
     ctx.restore();
   }
 
+  // -----------------------------
+  // Time ↔ dropdown logic (FIXED)
+  // -----------------------------
+  function hourNumToWord(h){ // 1..12
+    return HOUR_WORDS[(h-1) % 12];
+  }
+  function wordToHourNum(word){
+    const idx = HOUR_WORDS.indexOf(word);
+    return idx >= 0 ? idx+1 : null;
+  }
+  function nextHourNum(h){
+    return (h % 12) + 1;
+  }
+
+  // Generates the *canonical* colloquial phrase parts for a time (h:1..12, m:0..55 step 5)
+  // Returns {p1, p2, p3, spokenText}
+  // Important: "halb drei" means 2:30, so p3 = next hour word.
+  function timeToParts(h, m){
+    const hh = ((h-1)%12)+1;
+    const next = nextHourNum(hh);
+
+    // We only use 5-min increments
+    const p = {p1:"", p2:"", p3:"", spokenText:""};
+
+    if (m === 0){
+      p.p1 = "";
+      p.p2 = "punkt";
+      p.p3 = hourNumToWord(hh);
+      p.spokenText = `punkt ${p.p3} uhr`;
+      return p;
+    }
+
+    if (m === 30){
+      p.p1 = "";
+      p.p2 = "halb";
+      p.p3 = hourNumToWord(next);         // halb -> NEXT hour
+      p.spokenText = `halb ${p.p3}`;
+      return p;
+    }
+
+    // 5..20 after
+    if (m === 5 || m === 10 || m === 15 || m === 20){
+      p.p1 = (m===5?"fünf":m===10?"zehn":m===15?"viertel":"zwanzig");
+      p.p2 = "nach";
+      p.p3 = hourNumToWord(hh);
+      p.spokenText = `${p.p1} nach ${p.p3}`;
+      return p;
+    }
+
+    // 25 -> five before half next
+    if (m === 25){
+      p.p1 = "fünf";
+      p.p2 = "vor halb";
+      p.p3 = hourNumToWord(next);         // vor halb -> NEXT hour
+      p.spokenText = `${p.p1} vor halb ${p.p3}`;
+      return p;
+    }
+
+    // 35 -> five after half next
+    if (m === 35){
+      p.p1 = "fünf";
+      p.p2 = "nach halb";
+      p.p3 = hourNumToWord(next);         // nach halb -> NEXT hour
+      p.spokenText = `${p.p1} nach halb ${p.p3}`;
+      return p;
+    }
+
+    // 40,45,50,55 -> before next
+    if (m === 40 || m === 45 || m === 50 || m === 55){
+      p.p1 = (m===40?"zwanzig":m===45?"viertel":m===50?"zehn":"fünf");
+      p.p2 = "vor";
+      p.p3 = hourNumToWord(next);         // vor -> NEXT hour
+      p.spokenText = `${p.p1} vor ${p.p3}`;
+      return p;
+    }
+
+    // fallback: should not occur
+    p.p1 = "";
+    p.p2 = "punkt";
+    p.p3 = hourNumToWord(hh);
+    p.spokenText = `punkt ${p.p3} uhr`;
+    return p;
+  }
+
+  // Parse dropdown selection to a time {h, m} in 12h clock (h 1..12)
+  // This is the CRITICAL fixed part:
+  // - "halb X" => (X-1):30
+  // - "fünf vor halb X" => (X-1):25
+  // - "fünf nach halb X" => (X-1):35
+  // - "fünf nach X" => X:05 etc.
+  // - "fünf vor X" => (X-1):55 etc.
+  // - "punkt X" => X:00
+  function partsToTime(p1, p2, p3){
+    const H = wordToHourNum(p3);
+    if (!H) return null;
+
+    // normalize p1 empty
+    const minutesWord = (p1 || "").trim();
+
+    if (p2 === "punkt"){
+      if (minutesWord !== "") return null;
+      return {h: H, m: 0};
+    }
+
+    if (p2 === "halb"){
+      if (minutesWord !== "") return null;
+      // half to H => (H-1):30
+      const base = (H === 1) ? 12 : (H - 1);
+      return {h: base, m: 30};
+    }
+
+    if (p2 === "vor halb" || p2 === "nach halb"){
+      if (!minutesWord) return null;
+      if (minutesWord !== "fünf") return null; // in deinem Dropdown gibt's hier nur "fünf"
+      const base = (H === 1) ? 12 : (H - 1);
+      return {h: base, m: (p2 === "vor halb") ? 25 : 35};
+    }
+
+    if (p2 === "nach"){
+      if (!minutesWord) return null;
+      const map = {"fünf":5,"zehn":10,"viertel":15,"zwanzig":20};
+      if (!(minutesWord in map)) return null;
+      return {h: H, m: map[minutesWord]};
+    }
+
+    if (p2 === "vor"){
+      if (!minutesWord) return null;
+      const map = {"fünf":55,"zehn":50,"viertel":45,"zwanzig":40};
+      if (!(minutesWord in map)) return null;
+      // these are minutes before NEXT hour, so base hour is H-1
+      const base = (H === 1) ? 12 : (H - 1);
+      return {h: base, m: map[minutesWord]};
+    }
+
+    return null;
+  }
+
+  // -----------------------------
+  // Dropdown fill
+  // -----------------------------
+  function fillDropdowns(){
+    // p1
+    p1Sel.innerHTML = "";
+    MIN_WORDS.forEach(w=>{
+      const opt = document.createElement("option");
+      opt.value = w;
+      opt.textContent = (w === "") ? "—" : w; // UI: dash, stored as ""
+      p1Sel.appendChild(opt);
+    });
+
+    // p2
+    p2Sel.innerHTML = "";
+    FORM_WORDS.forEach(w=>{
+      const opt = document.createElement("option");
+      opt.value = w;
+      opt.textContent = w;
+      p2Sel.appendChild(opt);
+    });
+
+    // p3
+    p3Sel.innerHTML = "";
+    HOUR_WORDS.forEach(w=>{
+      const opt = document.createElement("option");
+      opt.value = w;
+      opt.textContent = w;
+      p3Sel.appendChild(opt);
+    });
+
+    // defaults
+    p1Sel.value = "";
+    p2Sel.value = "punkt";
+    p3Sel.value = "eins";
+  }
+
+  function applyConstraintHints(){
+    // Optional: leichte UI-Assistenz:
+    // wenn form "punkt" oder "halb": minuten dropdown automatisch auf "—"
+    const p2 = p2Sel.value;
+    if (p2 === "punkt" || p2 === "halb"){
+      p1Sel.value = "";
+    } else if (p2 === "vor halb" || p2 === "nach halb"){
+      if (p1Sel.value !== "fünf") p1Sel.value = "fünf";
+    }
+  }
+
+  p2Sel.addEventListener("change", applyConstraintHints);
+
+  // -----------------------------
+  // Task generation
+  // -----------------------------
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function randStep(min,max,step){
+    const count = Math.floor((max-min)/step)+1;
+    return min + randInt(0,count-1)*step;
+  }
+
+  function generateTime(){
+    // both grades use 5-minute steps, but we can limit 2nd grade to easier times if desired
+    // You asked: menu 3. klasse (minutenschritte) oder 2. klasse (volle 5 minuten-schritte)
+    // -> beide sind 5er Schritte, aber 2. klasse: eher ohne 40/45/50/55? (sonst ist's oft zu schwer)
+    // Ich mache:
+    // - 2. klasse: {0,5,10,15,20,25,30,35} (bis nach halb) + gelegentlich 40/45 (selten)
+    // - 3. klasse: alle 0..55 in 5er Schritten
+    const hour = randInt(1,12);
+    let minute;
+
+    if (grade === "2"){
+      const easier = [0,5,10,15,20,25,30,35];
+      minute = easier[randInt(0, easier.length-1)];
+    } else {
+      minute = randStep(0,55,5);
+    }
+    return {h: hour, m: minute};
+  }
+
+  function makeKey(t){ return `${t.h}:${t.m}`; }
+
+  function nextTask(){
+    clearFeedback();
+    let t, tries = 0;
+    do{
+      t = generateTime();
+      tries++;
+      if (tries > 500) break;
+    } while (used.has(makeKey(t)));
+
+    used.add(makeKey(t));
+    current = t;
+
+    drawClock(current.h, current.m);
+
+    const parts = timeToParts(current.h, current.m);
+    variantTag.textContent = (grade === "2") ? "2. klasse" : "3. klasse";
+    progressEl.textContent = `aufgabe ${done+1} von ${TOTAL}`;
+
+    // reset dropdowns to neutral
+    p1Sel.value = "";
+    p2Sel.value = "punkt";
+    p3Sel.value = "eins";
+    applyConstraintHints();
+
+    // speak task
+    speak(parts.spokenText);
+  }
+
+  function isSameTime(a,b){
+    if (!a || !b) return false;
+    return a.h === b.h && a.m === b.m;
+  }
+
+  function checkAnswer(){
+    if (!current) return;
+
+    const p1 = (p1Sel.value || "").trim();
+    const p2 = (p2Sel.value || "").trim();
+    const p3 = (p3Sel.value || "").trim();
+
+    const guess = partsToTime(p1, p2, p3);
+    const correctParts = timeToParts(current.h, current.m);
+
+    if (!guess){
+      wrong++;
+      statBad.textContent = String(wrong);
+      setFeedback("das passt nicht zusammen.", false);
+      return;
+    }
+
+    if (isSameTime(guess, current)){
+      correct++;
+      statOk.textContent = String(correct);
+      setFeedback("richtig! 👍", true);
+    } else {
+      wrong++;
+      statBad.textContent = String(wrong);
+      setFeedback(`leider falsch. korrekt wäre: ${correctParts.spokenText}`, false);
+    }
+
+    done++;
+    if (done >= TOTAL){
+      end();
+    } else {
+      setTimeout(nextTask, 700);
+    }
+  }
+
+  function end(){
+    quizEl.classList.add("hidden");
+    resultEl.classList.remove("hidden");
+
+    const pct = Math.round((correct / TOTAL) * 100);
+    summaryEl.innerHTML =
+      `du hast <strong>${TOTAL}</strong> uhrzeiten gelöst.<br>`+
+      `richtig: <strong>${correct}</strong> (${pct}%), fehler: <strong>${wrong}</strong>.`;
+  }
+
+  // -----------------------------
+  // Start / navigation
+  // -----------------------------
+  gradeGrid.querySelectorAll(".grade").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const g = btn.dataset.grade;
+      grade = (grade === g) ? null : g;
+
+      gradeGrid.querySelectorAll(".grade").forEach(b=>{
+        b.classList.toggle("selected", b.dataset.grade === grade);
+      });
+
+      if (!grade){
+        startInfo.textContent = "bitte klasse auswählen.";
+        startBtn.disabled = true;
+      } else {
+        startInfo.textContent = `ausgewählt: ${grade}. klasse`;
+        startBtn.disabled = false;
+      }
+    });
+  });
+
+  startBtn.addEventListener("click", ()=>{
+    if (!grade) return;
+
+    // reset state
+    correct = 0; wrong = 0; done = 0;
+    used = new Set();
+    current = null;
+
+    statOk.textContent = "0";
+    statBad.textContent = "0";
+    statTotal.textContent = String(TOTAL);
+
+    startEl.classList.add("hidden");
+    resultEl.classList.add("hidden");
+    quizEl.classList.remove("hidden");
+
+    fillDropdowns();
+    applyConstraintHints();
+    nextTask();
+  });
+
+  speakBtn.addEventListener("click", ()=>{
+    if (!current) return;
+    const parts = timeToParts(current.h, current.m);
+    speak(parts.spokenText);
+  });
+
+  checkBtn.addEventListener("click", checkAnswer);
+
+  againBtn.addEventListener("click", ()=>{
+    resultEl.classList.add("hidden");
+    startEl.classList.remove("hidden");
+  });
+
+  finishBtn.addEventListener("click", ()=>{
+    finishBtn.disabled = true;
+    finishBtn.textContent = "erledigt ✔";
+    try{
+      if (window.parent && window.parent !== window){
+        window.parent.postMessage("AppSolved","*");
+      }
+    }catch(e){
+      console.warn("learningview postmessage fehlgeschlagen:", e);
+    }
+  });
+
+  // init
   (function init(){
-    statTotal.textContent = String(TOTAL_QUESTIONS);
-    updateStartControls();
+    fillDropdowns();
+    // neutral clock
     drawClock(12,0);
-    setupSpeechRecognition();
+    startBtn.disabled = true;
+    startInfo.textContent = "bitte klasse auswählen.";
+    statTotal.textContent = String(TOTAL);
   })();
 </script>
 </body>
