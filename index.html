@@ -54,9 +54,7 @@
   </div>
 
   <div id="start-screen">
-    <div class="center">
-      <p>Bitte eine <strong>Klasse</strong> und eine <strong>Schwierigkeit</strong> auswählen.</p>
-    </div>
+    <div class="center"><p>Bitte eine <strong>Klasse</strong> und eine <strong>Schwierigkeit</strong> auswählen.</p></div>
 
     <div class="center" style="margin-top:.5rem;">Klasse</div>
     <div class="choice-grid" id="grade-grid">
@@ -80,7 +78,7 @@
     <div class="center">
       <span class="tag" id="variant-label"></span>
       <div class="equation">Sage die passende Uhrzeit:</div>
-      <div class="small-note"><span class="badge">Regel</span> Wir wandeln die Erkennung immer zuerst in <strong>Wörter</strong> um und prüfen dann.</div>
+      <div class="small-note"><span class="badge">Wichtig</span> „Erkannt (roh)“ ist exakt die Browser-Ausgabe. Geprüft wird separat.</div>
     </div>
 
     <div class="clock-wrapper">
@@ -98,7 +96,9 @@
         <div class="hint">Browser ohne Spracherkennung: tippe die Antwort. (Empfohlen: Chrome/Edge)</div>
       </div>
 
-      <div class="heard" id="heard">Erkannt: —</div>
+      <div class="heard" id="heard-raw">Erkannt (roh): —</div>
+      <div class="heard" id="heard-norm" style="margin-top:.4rem;">Für Prüfung: —</div>
+
       <div class="feedback" id="feedback"></div>
       <div class="hint" id="expected-hint"></div>
     </div>
@@ -133,14 +133,14 @@
   // ==========================
   // State
   // ==========================
-  let selectedGrade = null;
-  let selectedDifficulty = null;
-  let questionsDone = 0, correctAnswers = 0, wrongAnswers = 0;
-  let usedQuestions = [];
-  let currentQuestion = null;
+  let selectedGrade=null, selectedDifficulty=null;
+  let questionsDone=0, correctAnswers=0, wrongAnswers=0;
+  let usedQuestions=[];
+  let currentQuestion=null;
 
-  // Das ist der einzige Text, den wir prüfen: IMMER Wörter
-  let lastHeardWords = "";
+  // WICHTIG: getrennt!
+  let lastHeardRaw = "";        // exakt Browser-Transcript
+  let lastHeardNormalized = ""; // nur fürs Prüfen
 
   // ==========================
   // DOM
@@ -157,7 +157,8 @@
 
   const progressText = document.getElementById("progress-text");
   const variantLabel = document.getElementById("variant-label");
-  const heardEl = document.getElementById("heard");
+  const heardRawEl = document.getElementById("heard-raw");
+  const heardNormEl = document.getElementById("heard-norm");
   const feedback = document.getElementById("feedback");
   const expectedHint = document.getElementById("expected-hint");
 
@@ -181,24 +182,24 @@
   // ==========================
   // Utils
   // ==========================
-  function randomInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function randomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function capFirst(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
 
   function hourToWord(h){
-    const map = {1:"eins",2:"zwei",3:"drei",4:"vier",5:"fünf",6:"sechs",7:"sieben",8:"acht",9:"neun",10:"zehn",11:"elf",12:"zwölf"};
+    const map={1:"eins",2:"zwei",3:"drei",4:"vier",5:"fünf",6:"sechs",7:"sieben",8:"acht",9:"neun",10:"zehn",11:"elf",12:"zwölf"};
     return map[h] || String(h);
   }
-  function hourToWordEin(h){ return h === 1 ? "ein" : hourToWord(h); }
+  function hourToWordEin(h){ return h===1 ? "ein" : hourToWord(h); }
 
   function numberToGerman(n){
-    const ones = ["null","eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun"];
-    const special = {10:"zehn",11:"elf",12:"zwölf",13:"dreizehn",14:"vierzehn",15:"fünfzehn",16:"sechzehn",17:"siebzehn",18:"achtzehn",19:"neunzehn"};
+    const ones=["null","eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun"];
+    const special={10:"zehn",11:"elf",12:"zwölf",13:"dreizehn",14:"vierzehn",15:"fünfzehn",16:"sechzehn",17:"siebzehn",18:"achtzehn",19:"neunzehn"};
     if(n>=0 && n<=9) return ones[n];
     if(n>=10 && n<=19) return special[n];
-    const tensMap = {20:"zwanzig",30:"dreißig",40:"vierzig",50:"fünfzig"};
-    const tens = Math.floor(n/10)*10;
-    const one = n%10;
+    const tensMap={20:"zwanzig",30:"dreißig",40:"vierzig",50:"fünfzig"};
+    const tens=Math.floor(n/10)*10;
+    const one=n%10;
     if(one===0) return tensMap[tens] || String(n);
     const oneWord = (one===1) ? "ein" : ones[one];
     return oneWord + "und" + (tensMap[tens] || String(tens));
@@ -207,80 +208,78 @@
   function parseAnyTime(raw){
     raw = (raw || "").toLowerCase();
 
-    // 9:05 / 9.05 / 09:05
-    let m = raw.match(/\b([0-2]?\d)\s*[:.]\s*([0-5]\d)\b/);
+    let m = raw.match(/\b([0-2]?\d)\s*[:.]\s*([0-5]\d)\b/); // 9:05 / 9.05
     if(m){
       let hh = parseInt(m[1],10), mm = parseInt(m[2],10);
       if(!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
       if(hh===0) hh=12;
       hh = ((hh-1)%12)+1;
-      return {hour: hh, minute: mm};
+      return {hour:hh, minute:mm};
     }
 
-    // "11 uhr" / "punkt 2 uhr"
-    m = raw.match(/\b(punkt\s*)?([0-2]?\d)\s*uhr\b/);
+    m = raw.match(/\b(punkt\s*)?([0-2]?\d)\s*uhr\b/); // 11 uhr
     if(m){
       let hh = parseInt(m[2],10);
       if(!Number.isFinite(hh)) return null;
       if(hh===0) hh=12;
       hh = ((hh-1)%12)+1;
-      return {hour: hh, minute: 0};
+      return {hour:hh, minute:0};
     }
 
-    // "9 05"
-    m = raw.match(/\b([0-2]?\d)\s+([0-5]\d)\b/);
+    m = raw.match(/\b([0-2]?\d)\s+([0-5]\d)\b/); // 9 05
     if(m){
       let hh = parseInt(m[1],10), mm = parseInt(m[2],10);
       if(!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
       if(hh===0) hh=12;
       hh = ((hh-1)%12)+1;
-      return {hour: hh, minute: mm};
+      return {hour:hh, minute:mm};
     }
 
     return null;
   }
 
-  function timeToCanonicalWords(h, m){
-    const nextH = (h % 12) + 1;
-    const hw = hourToWord(h);
-    const nhw = hourToWord(nextH);
+  function timeToCanonicalWords(h,m){
+    const nextH=(h%12)+1;
+    const hw=hourToWord(h);
+    const nhw=hourToWord(nextH);
 
-    if(m === 0)  return `${hourToWordEin(h)} uhr`;
-    if(m === 5)  return `fünf nach ${hw}`;
-    if(m === 10) return `zehn nach ${hw}`;
-    if(m === 15) return `viertel nach ${hw}`;
-    if(m === 20) return `zwanzig nach ${hw}`;
-    if(m === 25) return `fünf vor halb ${nhw}`;
-    if(m === 30) return `halb ${nhw}`;
-    if(m === 35) return `fünf nach halb ${nhw}`;
-    if(m === 40) return `zwanzig vor ${nhw}`;
-    if(m === 45) return `viertel vor ${nhw}`;
-    if(m === 50) return `zehn vor ${nhw}`;
-    if(m === 55) return `fünf vor ${nhw}`;
+    if(m===0)  return `${hourToWordEin(h)} uhr`;
+    if(m===5)  return `fünf nach ${hw}`;
+    if(m===10) return `zehn nach ${hw}`;
+    if(m===15) return `viertel nach ${hw}`;
+    if(m===20) return `zwanzig nach ${hw}`;
+    if(m===25) return `fünf vor halb ${nhw}`;
+    if(m===30) return `halb ${nhw}`;
+    if(m===35) return `fünf nach halb ${nhw}`;
+    if(m===40) return `zwanzig vor ${nhw}`;
+    if(m===45) return `viertel vor ${nhw}`;
+    if(m===50) return `zehn vor ${nhw}`;
+    if(m===55) return `fünf vor ${nhw}`;
     return "";
   }
 
-  // ======= WICHTIG: vor halb / nach halb werden hart normalisiert =======
-  function normalizeHeardToClockWords(raw){
+  // ==========================
+  // NORMALISIERUNG NUR FÜR PRÜFUNG
+  // - Entfernt Füllwörter ("es ist", "uhr") und wandelt Zahlen zu Wörtern.
+  // - WICHTIG: KEINE Umformulierung! (niemals "fünf nach halb X" -> "halb X")
+  // ==========================
+  function normalizeForChecking(raw){
     raw = (raw || "").toLowerCase();
 
-    // 0) Häufige Verschmelzungen/Fehltrennungen abfangen:
-    // "vorhalb" -> "vor halb", "nachhalb" -> "nach halb"
-    raw = raw
-      .replace(/\bvorhalb\b/g, "vor halb")
-      .replace(/\bnachhalb\b/g, "nach halb");
+    // 0) "vorhalb"/"nachhalb" trennen (nur Trennung, keine Umformulierung)
+    raw = raw.replace(/\bvorhalb\b/g,"vor halb").replace(/\bnachhalb\b/g,"nach halb");
 
-    // 1) Wenn Zeit als Ziffern erkennbar: ersetze durch kanonische Wörter
+    // 1) Wenn Ziffern-Zeit vorkommt: ersetzen durch kanonische Wörter (sonst kann man 9:05 nicht prüfen)
     const parsed = parseAnyTime(raw);
     if(parsed){
       const phrase = timeToCanonicalWords(parsed.hour, parsed.minute);
       if(phrase) raw = phrase;
     }
 
-    // 2) Standalone Zahlen zu Wörtern (5 vor halb 9 etc.)
-    raw = raw.replace(/\b(\d{1,2})\b/g, (_, d) => numberToGerman(parseInt(d,10)));
+    // 2) Einzelne Zahlen in Wörter (z.B. "5 vor halb 6")
+    raw = raw.replace(/\b(\d{1,2})\b/g, (_,d)=>numberToGerman(parseInt(d,10)));
 
-    // 3) Füllwörter raus, "punkt" und "uhr" ignorieren
+    // 3) Füllwörter entfernen
     raw = raw
       .replace(/\bes\s+ist\b/g," ")
       .replace(/\bdas\s+ist\b/g," ")
@@ -292,210 +291,65 @@
       .replace(/\buhr\b/g," ")
       .replace(/\bpunkt\b/g," ");
 
-    // 4) Nur Buchstaben/Spaces behalten
+    // 4) Nur Buchstaben & Spaces
     raw = raw.replace(/[^\p{L}\s]/gu," ").replace(/\s+/g," ").trim();
 
-    // 5) "eins" -> "ein" (aber akzeptieren beide später trotzdem)
+    // 5) ein/eins vereinheitlichen (für Prüfung)
     raw = raw.replace(/\beins\b/g,"ein").replace(/\s+/g," ").trim();
-
-    // 6) Stelle sicher, dass "fünf vor halb" / "fünf nach halb" als exakte Phrase steht,
-    // falls SR komisch trennt (z.B. "fünf vorhalb").
-    raw = raw
-      .replace(/\bfünf\s+vor\s+halb\b/g, "fünf vor halb")
-      .replace(/\bfünf\s+nach\s+halb\b/g, "fünf nach halb");
 
     return raw;
   }
 
   function containsPhrase(heard, phrase){
-    const H = " " + heard + " ";
-    const P = " " + phrase + " ";
+    const H=" "+heard+" ";
+    const P=" "+phrase+" ";
     return H.includes(P);
   }
 
-  function getExpectedHourWordsFromCanonical(canonical){
-    const words = (canonical || "")
-      .toLowerCase()
-      .replace(/[^\p{L}\s]/gu," ")
-      .split(/\s+/)
-      .filter(Boolean);
-
-    const hours = new Set(["ein","eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf"]);
-    const found = words.filter(w => hours.has(w));
-    if(found.length === 0) return null;
-    const last = found[found.length-1];
-    if(last === "ein" || last === "eins") return ["ein","eins"];
-    return [last];
-  }
-
   function buildAcceptedPhrasesNormalized(canonical){
-    const base = normalizeHeardToClockWords(canonical);
+    const base = normalizeForChecking(canonical);
     const set = new Set([base]);
-
-    // ein/eins
     set.add(base.replace(/\bein\b/g,"eins"));
     set.add(base.replace(/\beins\b/g,"ein"));
-
-    // Für Sicherheit: manche SR liefern "fünf vorhalb"
-    // -> wir haben im Normalize schon vorhalb->vor halb, aber akzeptieren zur Not noch roh:
-    set.add(base.replace(/\bvor halb\b/g,"vorhalb"));
-    set.add(base.replace(/\bnach halb\b/g,"nachhalb"));
-
-    return Array.from(set).map(s => s.replace(/\s+/g," ").trim());
-  }
-
-  function buildAcceptedPhrasesRawForGrammar(canonical){
-    const base = (canonical || "").toLowerCase().replace(/\buhr\b/g,"").trim();
-
-    const set = new Set([base, base.replace(/\bein\b/g,"eins"), base.replace(/\beins\b/g,"ein")]);
-
-    // Exakt diese 2 Phrasen aggressiv rein (dein Wunsch):
-    set.add("fünf vor halb");
-    set.add("fünf nach halb");
-    set.add("fuenf vor halb");
-    set.add("fuenf nach halb");
-
-    // Falls SR zusammenzieht:
-    set.add("fünf vorhalb");
-    set.add("fünf nachhalb");
-    set.add("fuenf vorhalb");
-    set.add("fuenf nachhalb");
-
-    // Wrapper
-    const out = new Set();
-    for(const p of set){
-      out.add(p);
-      out.add("es ist " + p);
-      out.add(p + " uhr");
-      out.add("es ist " + p + " uhr");
-    }
-    return Array.from(out);
+    return Array.from(set).map(s=>s.replace(/\s+/g," ").trim());
   }
 
   // ==========================
-  // SpeechRecognition: Grammar + Best Alternative
+  // SpeechRecognition (keine Umformulierung der Rohanzeige!)
   // ==========================
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-
-  let recognizer = null;
-  let isListening = false;
-
-  function buildJSGFForQuestion(q){
-    // Wir erzwingen "fünf vor halb" / "fünf nach halb" im Grammar-Universum.
-    // Zusätzlich lassen wir die komplette erwartete Phrase zu (z.B. "fünf vor halb drei").
-    const fixed = [
-      "es ist",
-      "uhr","punkt",
-      "ein","eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf",
-      "fünf nach","zehn nach","viertel nach","zwanzig nach",
-      "fünf vor","zehn vor","viertel vor","zwanzig vor",
-      "halb",
-      "fünf vor halb","fünf nach halb",
-      "fuenf vor halb","fuenf nach halb",
-      "fünf vorhalb","fünf nachhalb",
-      "fuenf vorhalb","fuenf nachhalb"
-    ];
-
-    const choices = Array.from(new Set([...fixed, ...(q.acceptedPhrasesRaw || [])]));
-    return `#JSGF V1.0; grammar time; public <time> = (${choices.join(" | ")});`;
-  }
-
-  function setGrammarForCurrentQuestion(){
-    if(!recognizer || !SGL || !currentQuestion) return;
-    try{
-      const gl = new SGL();
-      gl.addFromString(buildJSGFForQuestion(currentQuestion), 1);
-      recognizer.grammars = gl;
-    }catch(_){
-      // ignore if unsupported
-    }
-  }
-
-  function pickBestFromResult(e){
-    const expected = currentQuestion?.acceptedPhrases || [];
-    const expHours = currentQuestion?.expectedHourWords || null;
-
-    let best = "";
-    let bestScore = -1;
-
-    const alts = e.results?.[0] || [];
-    for(let i=0;i<alts.length;i++){
-      const raw = alts[i].transcript || "";
-      const words = normalizeHeardToClockWords(raw);
-      if(!words) continue;
-
-      let score = 0;
-
-      // HARTE PRIORITÄT: wenn Aufgabe "vor halb" / "nach halb" ist, MUSS das im Heard vorkommen
-      const expectsHalfComplex = expected.some(p => p.includes("vor halb") || p.includes("nach halb"));
-      if(expectsHalfComplex){
-        const hasMarker = (words.includes("vor halb") || words.includes("nach halb") || words.includes("vorhalb") || words.includes("nachhalb"));
-        if(!hasMarker) score -= 1000; // fällt fast immer raus
-      }
-
-      // großer Treffer: enthält erwartete Phrase
-      for(const exp of expected){
-        if(containsPhrase(words, exp)) score = Math.max(score, 100);
-      }
-
-      // Bonus: enthält erwartete Stundenwörter (gegen 3/6 Drift)
-      if(expHours){
-        for(const h of expHours){
-          if(containsPhrase(words, h)) score += 10;
-        }
-      }
-
-      // Mini-Strafe für sehr lange Sätze
-      score -= Math.min(words.length, 60) * 0.05;
-
-      if(score > bestScore){
-        bestScore = score;
-        best = words;
-      }
-    }
-
-    if(!best){
-      const raw0 = e.results?.[0]?.[0]?.transcript || "";
-      best = normalizeHeardToClockWords(raw0);
-    }
-    return best;
-  }
+  let recognizer=null, isListening=false;
 
   function setupSpeechRecognition(){
     if(!SR){
-      recognizer = null;
-      micBtn.disabled = true;
-      micBtn.textContent = "🎤 Nicht verfügbar";
+      recognizer=null;
+      micBtn.disabled=true;
+      micBtn.textContent="🎤 Nicht verfügbar";
       fallbackWrap.classList.remove("hidden");
-      srNote.textContent = "Hinweis: Spracherkennung funktioniert am zuverlässigsten in Chrome/Edge.";
+      srNote.textContent="Hinweis: Spracherkennung funktioniert am zuverlässigsten in Chrome/Edge.";
       return;
     }
 
     recognizer = new SR();
-
-    // de-DE ist in Chrome meist stabiler als de-CH
     recognizer.lang = "de-DE";
-
     recognizer.interimResults = false;
     recognizer.continuous = false;
-
-    // Mehr Alternativen -> wir wählen die beste passende
-    recognizer.maxAlternatives = 10;
+    recognizer.maxAlternatives = 1; // roh anzeigen, keine “Best-of” Tricks hier
 
     recognizer.onstart = () => {
-      isListening = true;
+      isListening=true;
       micBtn.classList.add("listening");
-      micBtn.textContent = "⏹ Stop";
-      heardEl.textContent = "Erkannt: …";
-      feedback.textContent = "";
-      feedback.className = "feedback";
+      micBtn.textContent="⏹ Stop";
+      feedback.textContent="";
+      feedback.className="feedback";
+      heardRawEl.textContent="Erkannt (roh): …";
+      heardNormEl.textContent="Für Prüfung: …";
     };
 
     recognizer.onend = () => {
-      isListening = false;
+      isListening=false;
       micBtn.classList.remove("listening");
-      micBtn.textContent = "🎤 Sprechen";
+      micBtn.textContent="🎤 Sprechen";
     };
 
     recognizer.onerror = (e) => {
@@ -505,22 +359,29 @@
     };
 
     recognizer.onresult = (e) => {
-      lastHeardWords = pickBestFromResult(e);
-      heardEl.textContent = "Erkannt: " + (lastHeardWords || "—");
+      // 1) EXAKT was der Browser liefert (nur trim, sonst nichts!)
+      const raw = (e.results?.[0]?.[0]?.transcript || "").trim();
+      lastHeardRaw = raw;
+
+      // 2) Normalisierung nur für Prüfung
+      lastHeardNormalized = normalizeForChecking(raw);
+
+      heardRawEl.textContent = "Erkannt (roh): " + (lastHeardRaw || "—");
+      heardNormEl.textContent = "Für Prüfung: " + (lastHeardNormalized || "—");
     };
 
-    srNote.textContent = "Mikrofon erlauben, dann „Sprechen“ klicken. (Chrome/Edge empfohlen)";
+    srNote.textContent="Mikrofon erlauben, dann „Sprechen“ klicken. (Chrome/Edge empfohlen)";
   }
 
   // ==========================
-  // Flow
+  // UI Flow
   // ==========================
   gradeGrid.querySelectorAll(".grade-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const g = Number(btn.dataset.grade);
-      selectedGrade = (selectedGrade === g) ? null : g;
+      selectedGrade = (selectedGrade===g) ? null : g;
       gradeGrid.querySelectorAll(".grade-btn").forEach(b=>{
-        b.classList.toggle("selected", Number(b.dataset.grade) === selectedGrade);
+        b.classList.toggle("selected", Number(b.dataset.grade)===selectedGrade);
       });
       updateStartControls();
     });
@@ -529,19 +390,19 @@
   difficultyGrid.querySelectorAll(".difficulty-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const d = btn.dataset.diff;
-      selectedDifficulty = (selectedDifficulty === d) ? null : d;
+      selectedDifficulty = (selectedDifficulty===d) ? null : d;
       difficultyGrid.querySelectorAll(".difficulty-btn").forEach(b=>{
-        b.classList.toggle("selected", b.dataset.diff === selectedDifficulty);
+        b.classList.toggle("selected", b.dataset.diff===selectedDifficulty);
       });
       updateStartControls();
     });
   });
 
   function updateStartControls(){
-    if(!selectedGrade){ selectedInfo.textContent = "Bitte eine Klasse auswählen."; startBtn.disabled = true; return; }
-    if(!selectedDifficulty){ selectedInfo.textContent = "Bitte eine Schwierigkeit auswählen."; startBtn.disabled = true; return; }
-    selectedInfo.textContent = `Ausgewählt: ${GRADE_LABELS[selectedGrade]}, ${DIFF_LABELS[selectedDifficulty]}`;
-    startBtn.disabled = false;
+    if(!selectedGrade){ selectedInfo.textContent="Bitte eine Klasse auswählen."; startBtn.disabled=true; return; }
+    if(!selectedDifficulty){ selectedInfo.textContent="Bitte eine Schwierigkeit auswählen."; startBtn.disabled=true; return; }
+    selectedInfo.textContent=`Ausgewählt: ${GRADE_LABELS[selectedGrade]}, ${DIFF_LABELS[selectedDifficulty]}`;
+    startBtn.disabled=false;
   }
 
   startBtn.addEventListener("click", startTraining);
@@ -553,8 +414,8 @@
   });
 
   finishBtn.addEventListener("click", ()=>{
-    finishBtn.disabled = true;
-    finishBtn.textContent = "Erledigt ✔";
+    finishBtn.disabled=true;
+    finishBtn.textContent="Erledigt ✔";
     try{
       if(window.parent && window.parent !== window){
         window.parent.postMessage("AppSolved","*");
@@ -564,34 +425,34 @@
 
   micBtn.addEventListener("click", ()=>{
     if(!recognizer){ fallbackWrap.classList.remove("hidden"); return; }
-    if(isListening){ try{ recognizer.stop(); }catch(_){}
-      return;
-    }
+    if(isListening){ try{ recognizer.stop(); }catch(_){} return; }
     try{
-      lastHeardWords = "";
+      lastHeardRaw="";
+      lastHeardNormalized="";
       recognizer.start();
     }catch(_){
-      feedback.textContent = "Bitte kurz warten und nochmals auf „Sprechen“ klicken.";
-      feedback.className = "feedback error";
+      feedback.textContent="Bitte kurz warten und nochmals auf „Sprechen“ klicken.";
+      feedback.className="feedback error";
     }
   });
 
   checkBtn.addEventListener("click", checkAnswer);
-  fallbackInput.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter"){ e.preventDefault(); checkAnswer(); }
+  fallbackInput.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); checkAnswer(); }
   });
 
   function startTraining(){
-    questionsDone = 0; correctAnswers = 0; wrongAnswers = 0; usedQuestions = [];
-    statCorrect.textContent = "0";
-    statWrong.textContent = "0";
-    statTotal.textContent = String(TOTAL_QUESTIONS);
-    statMode.textContent = `${GRADE_LABELS[selectedGrade]} – ${DIFF_LABELS[selectedDifficulty]}`;
+    questionsDone=0; correctAnswers=0; wrongAnswers=0; usedQuestions=[];
+    statCorrect.textContent="0";
+    statWrong.textContent="0";
+    statTotal.textContent=String(TOTAL_QUESTIONS);
+    statMode.textContent=`${GRADE_LABELS[selectedGrade]} – ${DIFF_LABELS[selectedDifficulty]}`;
 
-    feedback.textContent = "";
-    feedback.className = "feedback";
-    heardEl.textContent = "Erkannt: —";
-    expectedHint.textContent = "";
+    feedback.textContent="";
+    feedback.className="feedback";
+    heardRawEl.textContent="Erkannt (roh): —";
+    heardNormEl.textContent="Für Prüfung: —";
+    expectedHint.textContent="";
 
     startScreen.classList.add("hidden");
     resultScreen.classList.add("hidden");
@@ -601,113 +462,103 @@
   }
 
   function generateTimeQuestion(grade, diff){
-    const hour = randomInt(1,12);
-    let minute = 0;
-    let label = "";
+    const hour=randomInt(1,12);
+    let minute=0, label="";
 
-    if(grade === 2 && diff === "easy"){
+    if(grade===2 && diff==="easy"){
       minute = pick([0,30]);
       label = "Volle und halbe Stunden";
-    } else if(grade === 2 && diff === "hard"){
+    }else if(grade===2 && diff==="hard"){
       minute = pick([0,5,10,15,20,25,30,35,40,45,50,55]);
       label = "Umgangssprache Mix";
-    } else {
+    }else{
       minute = pick(SUPPORTED_MINUTES);
-      label = (diff === "easy") ? "5-Minuten-Schritte" : "5-Minuten-Schritte (Mix)";
+      label = (diff==="easy") ? "5-Minuten-Schritte" : "5-Minuten-Schritte (Mix)";
     }
 
-    const canonical = capFirst(timeToCanonicalWords(hour, minute));
+    const canonical = capFirst(timeToCanonicalWords(hour,minute));
     return {
       hour, minute, label,
       canonical,
-      acceptedPhrases: buildAcceptedPhrasesNormalized(canonical),
-      acceptedPhrasesRaw: buildAcceptedPhrasesRawForGrammar(canonical),
-      expectedHourWords: getExpectedHourWordsFromCanonical(canonical)
+      acceptedPhrases: buildAcceptedPhrasesNormalized(canonical)
     };
   }
 
   function newQuestion(){
-    feedback.textContent = "";
-    feedback.className = "feedback";
-    lastHeardWords = "";
-    fallbackInput.value = "";
-    heardEl.textContent = "Erkannt: —";
+    feedback.textContent="";
+    feedback.className="feedback";
+    lastHeardRaw="";
+    lastHeardNormalized="";
+    fallbackInput.value="";
+    heardRawEl.textContent="Erkannt (roh): —";
+    heardNormEl.textContent="Für Prüfung: —";
 
-    let q, tries = 0;
+    let q, tries=0;
     while(true){
       q = generateTimeQuestion(selectedGrade, selectedDifficulty);
       const key = `${q.hour}-${q.minute}-${selectedGrade}-${selectedDifficulty}`;
-      if(!usedQuestions.includes(key)){
-        usedQuestions.push(key);
-        break;
-      }
-      if(++tries > 400) break;
+      if(!usedQuestions.includes(key)){ usedQuestions.push(key); break; }
+      if(++tries>400) break;
     }
 
-    currentQuestion = q;
-    variantLabel.textContent = q.label;
-
-    drawClock(q.hour, q.minute);
-    progressText.textContent = `Aufgabe ${questionsDone + 1} von ${TOTAL_QUESTIONS}`;
-    expectedHint.textContent = "Beispiel richtig: " + normalizeHeardToClockWords(q.canonical);
-
-    setGrammarForCurrentQuestion();
+    currentQuestion=q;
+    variantLabel.textContent=q.label;
+    drawClock(q.hour,q.minute);
+    progressText.textContent=`Aufgabe ${questionsDone+1} von ${TOTAL_QUESTIONS}`;
+    expectedHint.textContent="Beispiel richtig: " + normalizeForChecking(q.canonical);
   }
 
   function checkAnswer(){
+    // Wenn nicht gesprochen wurde, kann man tippen – geprüft wird immer NORMALISIERT
     const typed = (fallbackInput.value || "").trim();
-    const heard = lastHeardWords || normalizeHeardToClockWords(typed);
+    const heard = (lastHeardNormalized || normalizeForChecking(typed));
 
     if(!heard){
-      feedback.textContent = "Bitte zuerst sprechen (oder eintippen) und dann überprüfen.";
-      feedback.className = "feedback error";
+      feedback.textContent="Bitte zuerst sprechen (oder eintippen) und dann überprüfen.";
+      feedback.className="feedback error";
       return;
     }
 
-    let ok = false;
+    let ok=false;
     for(const exp of currentQuestion.acceptedPhrases){
-      if(containsPhrase(heard, exp)){
-        ok = true; break;
-      }
+      if(containsPhrase(heard, exp)){ ok=true; break; }
     }
 
     if(ok){
       correctAnswers++;
-      statCorrect.textContent = String(correctAnswers);
-      feedback.textContent = "Richtig! 👍";
-      feedback.className = "feedback ok";
+      statCorrect.textContent=String(correctAnswers);
+      feedback.textContent="Richtig! 👍";
+      feedback.className="feedback ok";
     }else{
       wrongAnswers++;
-      statWrong.textContent = String(wrongAnswers);
-      feedback.textContent = "Falsch. Richtig wäre: " + currentQuestion.acceptedPhrases[0];
-      feedback.className = "feedback error";
+      statWrong.textContent=String(wrongAnswers);
+      feedback.textContent="Falsch. Richtig wäre: " + currentQuestion.acceptedPhrases[0];
+      feedback.className="feedback error";
     }
 
     questionsDone++;
-    if(questionsDone >= TOTAL_QUESTIONS) setTimeout(endTraining, 700);
-    else setTimeout(newQuestion, 700);
+    if(questionsDone>=TOTAL_QUESTIONS) setTimeout(endTraining,700);
+    else setTimeout(newQuestion,700);
   }
 
   function endTraining(){
     quizScreen.classList.add("hidden");
     resultScreen.classList.remove("hidden");
-    const quote = (correctAnswers / TOTAL_QUESTIONS * 100).toFixed(0);
+    const quote=(correctAnswers/TOTAL_QUESTIONS*100).toFixed(0);
     resultSummary.innerHTML =
-      `Du hast <strong>${TOTAL_QUESTIONS}</strong> Uhrzeiten gelöst.<br>` +
-      `Richtig: <strong>${correctAnswers}</strong> (${quote}%).<br>` +
+      `Du hast <strong>${TOTAL_QUESTIONS}</strong> Uhrzeiten gelöst.<br>`+
+      `Richtig: <strong>${correctAnswers}</strong> (${quote}%).<br>`+
       `Falsch: <strong>${wrongAnswers}</strong>.`;
   }
 
   // ==========================
-  // Clock: no numbers, minute+hour ticks, red hour hand, blue minute hand
+  // Clock: keine Zahlen, Striche, roter Stundenzeiger, blauer Minutenzeiger
   // ==========================
   function drawClock(hour, minute){
-    const ctx = clockCtx;
-    const w = clockCanvas.width;
-    const h = clockCanvas.height;
-    const radius = Math.min(w,h)/2 - 10;
-    const cx = w/2;
-    const cy = h/2;
+    const ctx=clockCtx;
+    const w=clockCanvas.width, h=clockCanvas.height;
+    const r=Math.min(w,h)/2-10;
+    const cx=w/2, cy=h/2;
 
     ctx.clearRect(0,0,w,h);
     ctx.save();
@@ -715,48 +566,45 @@
 
     // Face
     ctx.beginPath();
-    ctx.arc(0,0,radius,0,Math.PI*2);
+    ctx.arc(0,0,r,0,Math.PI*2);
     ctx.fillStyle="#ffffff";
     ctx.fill();
     ctx.lineWidth=3;
     ctx.strokeStyle="#111827";
     ctx.stroke();
 
-    // Minute ticks (60)
+    // Ticks (60)
     for(let i=0;i<60;i++){
-      const angle = (Math.PI/30)*i - Math.PI/2;
+      const a=(Math.PI/30)*i - Math.PI/2;
       const isHour = (i%5===0);
-
-      const outer = radius - 6;
-      const inner = radius - (isHour ? 18 : 12);
+      const outer=r-6;
+      const inner=r-(isHour?18:12);
 
       ctx.beginPath();
-      ctx.moveTo(inner*Math.cos(angle), inner*Math.sin(angle));
-      ctx.lineTo(outer*Math.cos(angle), outer*Math.sin(angle));
-      ctx.lineWidth = isHour ? 3 : 1.2;
-      ctx.strokeStyle = "#111827";
+      ctx.moveTo(inner*Math.cos(a), inner*Math.sin(a));
+      ctx.lineTo(outer*Math.cos(a), outer*Math.sin(a));
+      ctx.lineWidth=isHour?3:1.2;
+      ctx.strokeStyle="#111827";
       ctx.stroke();
     }
 
-    // Hands
     // Minute hand (blue)
-    const minuteAngle = (Math.PI/30)*minute - Math.PI/2;
+    const ma=(Math.PI/30)*minute - Math.PI/2;
     ctx.beginPath();
     ctx.moveTo(0,0);
-    ctx.lineTo((radius-22)*Math.cos(minuteAngle), (radius-22)*Math.sin(minuteAngle));
+    ctx.lineTo((r-22)*Math.cos(ma), (r-22)*Math.sin(ma));
     ctx.lineWidth=4;
-    ctx.strokeStyle="#2563eb"; // blue
+    ctx.strokeStyle="#2563eb";
     ctx.lineCap="round";
     ctx.stroke();
 
     // Hour hand (red)
-    const hourIn12 = hour % 12;
-    const hourAngle = (Math.PI/6)*(hourIn12 + minute/60) - Math.PI/2;
+    const ha=(Math.PI/6)*((hour%12)+minute/60) - Math.PI/2;
     ctx.beginPath();
     ctx.moveTo(0,0);
-    ctx.lineTo((radius-55)*Math.cos(hourAngle), (radius-55)*Math.sin(hourAngle));
+    ctx.lineTo((r-55)*Math.cos(ha), (r-55)*Math.sin(ha));
     ctx.lineWidth=5;
-    ctx.strokeStyle="#dc2626"; // red
+    ctx.strokeStyle="#dc2626";
     ctx.lineCap="round";
     ctx.stroke();
 
@@ -773,7 +621,7 @@
   // Init
   // ==========================
   (function init(){
-    statTotal.textContent = String(TOTAL_QUESTIONS);
+    statTotal.textContent=String(TOTAL_QUESTIONS);
     drawClock(12,0);
     setupSpeechRecognition();
     updateStartControls();
