@@ -140,7 +140,7 @@ const MINUTE_PATTERN_CYCLE = [
   { minute: 45, label: "viertel vor" },
   { minute: 25, label: "fünf vor halb" },
   { minute: 35, label: "fünf nach halb" },
-  { minute: 15, label: "viertel nach" }
+  { minute: 15, label: "viertel nach" },
   { minute: 40,  label: "zwanzig vor" },
   { minute: 0,  label: "punkt" },
 ];
@@ -460,7 +460,7 @@ function newQuestion(){
   drawClock(currentQuestion.hour, currentQuestion.minute);
 
   progressText.textContent = `Aufgabe ${questionsDone+1} von ${TOTAL_QUESTIONS}`;
-  expectedHint.textContent = "Gesucht (muss im Text vorkommen): " + currentQuestion.expected;
+  //expectedHint.textContent = "Gesucht (muss im Text vorkommen): " + currentQuestion.expected;
 }
 
 function checkAnswer(){
@@ -547,12 +547,11 @@ if (SGL) {
 }
 
   recognizer.lang = "de-CH";
-recognizer.maxAlternatives = 8;
+  recognizer.maxAlternatives = 8;
 
   recognizer.interimResults = false;
   recognizer.continuous = false;
-  recognizer.maxAlternatives = 1;
-
+  
   recognizer.onstart = () => {
     isListening=true;
     micBtn.classList.add("listening");
