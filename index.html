@@ -525,7 +525,30 @@ function setupSpeech(){
   }
 
   recognizer = new SR();
-  recognizer.lang = "de-DE";
+  const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+if (SGL) {
+  const phrases = [];
+  const hours = ["eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf"];
+  const prefixes = [
+    "punkt",
+    "fünf nach","zehn nach","viertel nach","zwanzig nach",
+    "fünf vor halb","halb","fünf nach halb",
+    "zwanzig vor","viertel vor","zehn vor","fünf vor"
+  ];
+  for (const p of prefixes) for (const h of hours) phrases.push(`${p} ${h}`);
+
+  const grammar =
+    "#JSGF V1.0; grammar time; public <time> = " +
+    phrases.join(" | ") + " ;";
+
+  const gl = new SGL();
+  gl.addFromString(grammar, 1);
+  recognizer.grammars = gl;
+}
+
+  recognizer.lang = "de-CH";
+recognizer.maxAlternatives = 8;
+
   recognizer.interimResults = false;
   recognizer.continuous = false;
   recognizer.maxAlternatives = 1;
