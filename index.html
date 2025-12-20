@@ -129,7 +129,6 @@ const GRADE_LABELS = {2:"2. Klasse",3:"3. Klasse"};
 const DIFF_LABELS  = {easy:"einfach",hard:"schwierig"};
 
 const HOURS_WORDS = ["eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf"];
-const wordToNum = Object.fromEntries(HOURS_WORDS.map((w,i)=>[w, i+1]));
 const numToWord = (n)=>HOURS_WORDS[(n-1+12)%12];
 
 const MINUTE_PATTERN_CYCLE = [
@@ -140,7 +139,6 @@ const MINUTE_PATTERN_CYCLE = [
   { minute: 35, label: "fünf nach halb" },
   { minute: 15, label: "viertel nach" }
 ];
-// -> Zyklus sorgt für Abwechslung, und wir verhindern zusätzlich doppelte Minuten hintereinander.
 
 let selectedGrade=null, selectedDifficulty=null;
 let questionsDone=0, correctAnswers=0, wrongAnswers=0;
@@ -193,7 +191,20 @@ const clockCtx = clockCanvas.getContext("2d");
 ========================== */
 function randomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function clamp12(h){ return ((h-1)%12)+1; }
-function pad2(n){ return String(n).padStart(2,"0"); }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+/* NEW: robuster Vergleich (Satzzeichen -> Leerzeichen) */
+function normalizeForCompare(s){
+  return String(s)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function timeToColloquial(hour, minute){
   const h = clamp12(hour);
@@ -213,12 +224,11 @@ function timeToColloquial(hour, minute){
     case 45: return `viertel vor ${nhw}`;
     case 50: return `zehn vor ${nhw}`;
     case 55: return `fünf vor ${nhw}`;
-    default: return `${hw}`; // not used
+    default: return `${hw}`;
   }
 }
 
 function addMinutes12h(h, m, delta){
-  // h 1..12, m 0..59
   let total = ((h%12)*60) + m; // 12 -> 0h
   total += delta;
   total = ((total % (12*60)) + (12*60)) % (12*60);
@@ -228,84 +238,59 @@ function addMinutes12h(h, m, delta){
   return {h: nh, m: nm};
 }
 
-function replaceAllCaseInsensitive(str, search, replacement){
-  const re = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-  return str.replace(re, replacement);
-}
-
 /* ==========================
-   "ROH" -> "TEXT IN ALLTAGSSPRACHE"
-   - zeichnet alles auf, ändert nur Zahlzeiten/Offset-Zahlzeiten in Alltagssprache
-   - KEIN Wegstreichen von Wörtern
-   - Danach Vergleich: expected muss im colText vorkommen
+   ROH -> ALLTAGSTEXT (nur Umschreiben von Zahlzeit-Tokens)
 ========================== */
 function normalizeToColloquialText(raw){
   if(!raw) return "";
+  let t = raw.replace(/\s+/g," ").trim();
 
-  let t = raw;
-
-  // 1) Normalisiere ein paar Trennzeichen, aber lasse Wörter stehen
-  // (wir lassen den Rest exakt wie er ist)
-  t = t.replace(/\s+/g," ").trim();
-
-  // 2) Offset + Basiszeit: "5 vor 09:30" / "10 nach 6:30"
-  // Wir suchen: (5|10|15|20) (vor|nach) HH:MM
-  // und ersetzen NUR dieses Stück durch die korrekte Alltagssprache der resultierenden Zeit.
+  // Offset + Basiszeit: "5 vor 09:30" / "10 nach 6:30"
   t = t.replace(/\b(5|10|15|20)\s*(vor|nach)\s*(\d{1,2})[:.](\d{2})\b/gi, (m, d, rel, hh, mm) => {
     const delta = parseInt(d,10) * (String(rel).toLowerCase()==="nach" ? 1 : -1);
     let H = parseInt(hh,10);
     let M = parseInt(mm,10);
-    // 24h/0 zulassen, dann in 12h abbilden
     if(H===0) H=12;
     H = ((H-1)%12)+1;
+
     const r = addMinutes12h(H, M, delta);
-    // nur zulässige Minuten -> sonst lassen wir original stehen
     const allowed = new Set([0,5,10,15,20,25,30,35,40,45,50,55]);
-    if(!allowed.has(r.m)) return m; // unverändert
+    if(!allowed.has(r.m)) return m;
     return timeToColloquial(r.h, r.m);
   });
 
-  // 3) Reine Zahlzeit: "9:15" / "09.25"
+  // Reine Zahlzeit: "9:15" / "09.25"
   t = t.replace(/\b(\d{1,2})[:.](\d{2})\b/g, (m, hh, mm) => {
     let H = parseInt(hh,10);
     let M = parseInt(mm,10);
     if(!Number.isFinite(H) || !Number.isFinite(M)) return m;
     if(H===0) H=12;
     H = ((H-1)%12)+1;
+
     const allowed = new Set([0,5,10,15,20,25,30,35,40,45,50,55]);
     if(!allowed.has(M)) return m;
     return timeToColloquial(H, M);
   });
 
-  // 4) Ziffern 1..12 als alleinstehende Tokens -> Wortform (für Anzeige angenehmer)
-  // (nicht zwingend, aber hilft "9" -> "neun")
+  // Ziffern 0..12 als Tokens -> Wort (Anzeige angenehmer)
   const map = { "0":"zwölf","1":"eins","2":"zwei","3":"drei","4":"vier","5":"fünf","6":"sechs","7":"sieben","8":"acht","9":"neun","10":"zehn","11":"elf","12":"zwölf" };
   t = t.replace(/\b(1[0-2]|[0-9])\b/g, m => map[m] ?? m);
 
-  // 5) Einheitliche Kleinschreibung für Vergleich (Anzeige bleibt trotzdem okay)
   return t.toLowerCase().replace(/\s+/g," ").trim();
 }
 
 /* ==========================
-   QUIZ GENERATION (20 Aufgaben)
-   - Minuten wechseln über Zyklus
-   - keine identischen Minuten direkt nacheinander
-   - Zeiten nicht doppeln (hour+minute)
+   QUIZ GENERATION (20)
 ========================== */
 let lastMinute = null;
 
 function generateQuestion(index){
-  // Minuten aus Zyklus
   let minute = MINUTE_PATTERN_CYCLE[index % MINUTE_PATTERN_CYCLE.length].minute;
-
-  // Extra-Schutz: keine gleiche Minute wie vorher
   if(lastMinute !== null && minute === lastMinute){
-    // nimm nächste im Zyklus
     minute = MINUTE_PATTERN_CYCLE[(index+1) % MINUTE_PATTERN_CYCLE.length].minute;
   }
   lastMinute = minute;
 
-  // Stunde zufällig, aber keine Doppelzeit
   let hour, tries=0;
   while(true){
     hour = randomInt(1,12);
@@ -323,7 +308,7 @@ function generateQuestion(index){
 }
 
 /* ==========================
-   CLOCK (ticks, red hour, blue minute)
+   CLOCK
 ========================== */
 function drawClock(hour, minute){
   const ctx=clockCtx;
@@ -383,7 +368,7 @@ function drawClock(hour, minute){
 }
 
 /* ==========================
-   UI FLOW
+   UI
 ========================== */
 function updateStartControls(){
   if(!selectedGrade){ selectedInfo.textContent="Bitte eine Klasse auswählen."; startBtn.disabled=true; return; }
@@ -427,7 +412,7 @@ finishBtn.addEventListener("click", ()=>{
 });
 
 /* ==========================
-   QUIZ LOGIC
+   QUIZ FLOW
 ========================== */
 function startTraining(){
   questionsDone=0; correctAnswers=0; wrongAnswers=0;
@@ -473,7 +458,6 @@ function newQuestion(){
 }
 
 function checkAnswer(){
-  // Wenn nicht gesprochen, typed nutzen
   if(!lastRaw && fallbackInput.value.trim()){
     lastRaw = fallbackInput.value.trim();
     lastCol = normalizeToColloquialText(lastRaw);
@@ -487,8 +471,10 @@ function checkAnswer(){
     return;
   }
 
-  // Vergleich: expected muss im umgeschriebenen Text vorkommen
-  const ok = lastCol.includes(currentQuestion.expected);
+  // NEW: Vergleich robust gegen Satzzeichen wie "fünf. vor halb zwölf"
+  const hay = normalizeForCompare(lastCol);
+  const needle = normalizeForCompare(currentQuestion.expected);
+  const ok = hay.includes(needle);
 
   if(ok){
     correctAnswers++;
@@ -582,15 +568,6 @@ checkBtn.addEventListener("click", checkAnswer);
 fallbackInput.addEventListener("keydown",(e)=>{
   if(e.key==="Enter"){ e.preventDefault(); checkAnswer(); }
 });
-
-/* ==========================
-   utils
-========================== */
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-}
 
 /* ==========================
    INIT
