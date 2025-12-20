@@ -30,13 +30,23 @@
     .mic-btn{width:100%;padding:.75rem 1rem;font-size:1.05rem;border-radius:999px;border:none;cursor:pointer;font-weight:900;background:#111827;color:#fff;}
     .mic-btn.listening{background:#dc2626;}
     .mic-btn:disabled{background:#9ca3af;cursor:not-allowed;}
-    .heard{margin-top:.6rem;font-size:.98rem;color:#111827;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:.7rem .8rem;min-height:2.2rem;word-break:break-word;}
-    .heard strong{display:block;margin-bottom:.25rem;color:#374151;}
-    .hint{font-size:.85rem;color:#6b7280;margin-top:.5rem;line-height:1.35;}
+    .heard{
+      margin-top:.6rem;
+      font-size:1.05rem;
+      color:#111827;
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:.8rem .9rem;
+      min-height:2.4rem;
+      word-break:break-word;
+      font-weight:900;
+    }
     .feedback{min-height:1.4rem;margin-top:.6rem;font-weight:900;text-align:center;}
     .feedback.ok{color:#15803d;}
     .feedback.error{color:#b91c1c;}
     .stats{margin-top:.9rem;font-size:.95rem;color:#374151;}
+    .hint{font-size:.85rem;color:#6b7280;margin-top:.5rem;line-height:1.35;text-align:center;}
     .input-fallback{width:100%;padding:.7rem .8rem;border-radius:12px;border:2px solid #d1d5db;background:#fff;font-size:1.02rem;font-weight:650;color:#111827;outline:none;box-sizing:border-box;}
   </style>
 </head>
@@ -44,8 +54,7 @@
 <div class="app">
   <h1>Wie spät ist es?</h1>
   <div class="subtitle">
-    Lies die analoge Uhr und <strong>sage irgendetwas</strong> – der Satzbau ist egal.<br>
-    <strong>Prüfung:</strong> Die korrekte Alltagssprache der Uhrzeit muss im Text vorkommen.
+    Lies die analoge Uhr und <strong>sage die Uhrzeit</strong> in Umgangssprache.
   </div>
 
   <!-- START -->
@@ -66,7 +75,7 @@
 
     <div class="selected-info" id="selected-info"></div>
     <button class="primary-btn" id="start-btn" disabled>Los!</button>
-    <div class="hint center" id="sr-note"></div>
+    <div class="hint" id="sr-note"></div>
   </div>
 
   <!-- QUIZ -->
@@ -75,7 +84,6 @@
     <div class="center">
       <span class="tag" id="variant-label"></span>
       <div class="equation">Sage die passende Uhrzeit:</div>
-      <div class="hint">Anzeige zeigt <strong>deinen Text</strong>, aber Zahlzeiten werden in Alltagssprache umgeschrieben (z.B. 9:15 → „viertel nach neun“).</div>
     </div>
 
     <div class="clock-wrapper">
@@ -93,11 +101,8 @@
         <div class="hint">Chrome/Edge empfohlen.</div>
       </div>
 
-      <div class="heard" id="heard-raw"><strong>Rohtext (1:1):</strong> —</div>
-      <div class="heard" id="heard-col"><strong>Text in Alltagssprache:</strong> —</div>
-
+      <div class="heard" id="heard-ui">Erkannt: —</div>
       <div class="feedback" id="feedback"></div>
-      <div class="hint" id="expected-hint"></div>
     </div>
 
     <div class="stats">
@@ -121,18 +126,22 @@
 
 <script>
 /* ==========================
-   SETTINGS / STATE
+   SETTINGS
 ========================== */
 const TOTAL_QUESTIONS = 20;
-
 const GRADE_LABELS = {2:"2. Klasse",3:"3. Klasse"};
 const DIFF_LABELS  = {easy:"einfach",hard:"schwierig"};
 
-const HOURS_WORDS = ["eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf"];
-const wordToNum = Object.fromEntries(HOURS_WORDS.map((w,i)=>[w, i+1]));
-const numToWord = (n)=>HOURS_WORDS[(n-1+12)%12];
+const HOURS = ["eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf"];
+const PREFIXES = [
+  "punkt",
+  "fünf nach","zehn nach","viertel nach","zwanzig nach",
+  "fünf vor halb","halb","fünf nach halb",
+  "zwanzig vor","viertel vor","zehn vor","fünf vor"
+];
 
-const MINUTE_PATTERN_CYCLE = [
+// Abwechslung Minuten: Zyklus (und zusätzlich: keine identische Minute direkt nacheinander)
+const MINUTE_CYCLE = [
   { minute: 5,  label: "fünf nach" },
   { minute: 20, label: "zwanzig nach" },
   { minute: 45, label: "viertel vor" },
@@ -140,15 +149,19 @@ const MINUTE_PATTERN_CYCLE = [
   { minute: 35, label: "fünf nach halb" },
   { minute: 15, label: "viertel nach" }
 ];
-// -> Zyklus sorgt für Abwechslung, und wir verhindern zusätzlich doppelte Minuten hintereinander.
 
+/* ==========================
+   STATE
+========================== */
 let selectedGrade=null, selectedDifficulty=null;
 let questionsDone=0, correctAnswers=0, wrongAnswers=0;
 let usedKeys = new Set();
 let currentQuestion=null;
 
-let lastRaw = "";
-let lastCol = "";
+let lastRaw = "";       // Browser-Rohtext
+let lastSpoken = "—";   // Was wir als Umgangssprache aus dem Rohtext herauslesen (für Anzeige)
+
+let lastMinuteUsed = null;
 
 /* ==========================
    DOM
@@ -165,11 +178,8 @@ const srNote = document.getElementById("sr-note");
 
 const progressText = document.getElementById("progress-text");
 const variantLabel = document.getElementById("variant-label");
-
-const heardRawEl = document.getElementById("heard-raw");
-const heardColEl = document.getElementById("heard-col");
+const heardUI = document.getElementById("heard-ui");
 const feedback = document.getElementById("feedback");
-const expectedHint = document.getElementById("expected-hint");
 
 const statCorrect = document.getElementById("stat-correct");
 const statTotal = document.getElementById("stat-total");
@@ -193,13 +203,25 @@ const clockCtx = clockCanvas.getContext("2d");
 ========================== */
 function randomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function clamp12(h){ return ((h-1)%12)+1; }
-function pad2(n){ return String(n).padStart(2,"0"); }
+function hourToWord(h){ return HOURS[(clamp12(h)-1)]; }
 
+function normalizeForCompare(s){
+  // Satzzeichen weg, Spaces normalisieren, lowercase
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/* ==========================
+   TIME -> expected phrase (umgangssprachlich)
+========================== */
 function timeToColloquial(hour, minute){
   const h = clamp12(hour);
   const next = (h%12)+1;
-  const hw = numToWord(h);
-  const nhw = numToWord(next);
+  const hw = hourToWord(h);
+  const nhw = hourToWord(next);
   switch(minute){
     case 0:  return `punkt ${hw}`;
     case 5:  return `fünf nach ${hw}`;
@@ -213,99 +235,49 @@ function timeToColloquial(hour, minute){
     case 45: return `viertel vor ${nhw}`;
     case 50: return `zehn vor ${nhw}`;
     case 55: return `fünf vor ${nhw}`;
-    default: return `${hw}`; // not used
+    default: return `punkt ${hw}`;
   }
 }
 
-function addMinutes12h(h, m, delta){
-  // h 1..12, m 0..59
-  let total = ((h%12)*60) + m; // 12 -> 0h
-  total += delta;
-  total = ((total % (12*60)) + (12*60)) % (12*60);
-  let nh = Math.floor(total/60);
-  let nm = total % 60;
-  if(nh===0) nh = 12;
-  return {h: nh, m: nm};
-}
+/* ==========================
+   Parser (dein Wunsch):
+   - Nimm Rohtext der Browser-Spracherkennung
+   - Prüfe nur, ob expected Wortfolge in richtiger Reihenfolge vorkommt
+   - Für Anzeige: extrahiere die erste erlaubte Wortfolge aus dem Rohtext (so erkennt der User, "was er gesagt hat")
+========================== */
+function extractFirstAllowedPhrase(raw){
+  // Wir extrahieren NICHT "intelligent", sondern suchen nur erlaubte Wortfolgen.
+  const clean = normalizeForCompare(raw);
 
-function replaceAllCaseInsensitive(str, search, replacement){
-  const re = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-  return str.replace(re, replacement);
+  // längere Präfixe zuerst, damit "fünf vor halb" nicht durch "fünf vor" gefressen wird
+  const prefixesSorted = [...PREFIXES].sort((a,b)=>b.length-a.length);
+
+  for(const p of prefixesSorted){
+    for(const h of HOURS){
+      const phrase = normalizeForCompare(`${p} ${h}`);
+      if(clean.includes(phrase)){
+        // Rückgabe in normaler Schreibweise (wie aufgebaut)
+        return `${p} ${h}`;
+      }
+    }
+  }
+  return "—";
 }
 
 /* ==========================
-   "ROH" -> "TEXT IN ALLTAGSSPRACHE"
-   - zeichnet alles auf, ändert nur Zahlzeiten/Offset-Zahlzeiten in Alltagssprache
-   - KEIN Wegstreichen von Wörtern
-   - Danach Vergleich: expected muss im colText vorkommen
+   Quiz generation
+   - Minuten wechseln zyklisch
+   - keine Minute direkt zweimal
+   - Zeit nicht doppeln (hour+minute)
 ========================== */
-function normalizeToColloquialText(raw){
-  if(!raw) return "";
-
-  let t = raw;
-
-  // 1) Normalisiere ein paar Trennzeichen, aber lasse Wörter stehen
-  // (wir lassen den Rest exakt wie er ist)
-  t = t.replace(/\s+/g," ").trim();
-
-  // 2) Offset + Basiszeit: "5 vor 09:30" / "10 nach 6:30"
-  // Wir suchen: (5|10|15|20) (vor|nach) HH:MM
-  // und ersetzen NUR dieses Stück durch die korrekte Alltagssprache der resultierenden Zeit.
-  t = t.replace(/\b(5|10|15|20)\s*(vor|nach)\s*(\d{1,2})[:.](\d{2})\b/gi, (m, d, rel, hh, mm) => {
-    const delta = parseInt(d,10) * (String(rel).toLowerCase()==="nach" ? 1 : -1);
-    let H = parseInt(hh,10);
-    let M = parseInt(mm,10);
-    // 24h/0 zulassen, dann in 12h abbilden
-    if(H===0) H=12;
-    H = ((H-1)%12)+1;
-    const r = addMinutes12h(H, M, delta);
-    // nur zulässige Minuten -> sonst lassen wir original stehen
-    const allowed = new Set([0,5,10,15,20,25,30,35,40,45,50,55]);
-    if(!allowed.has(r.m)) return m; // unverändert
-    return timeToColloquial(r.h, r.m);
-  });
-
-  // 3) Reine Zahlzeit: "9:15" / "09.25"
-  t = t.replace(/\b(\d{1,2})[:.](\d{2})\b/g, (m, hh, mm) => {
-    let H = parseInt(hh,10);
-    let M = parseInt(mm,10);
-    if(!Number.isFinite(H) || !Number.isFinite(M)) return m;
-    if(H===0) H=12;
-    H = ((H-1)%12)+1;
-    const allowed = new Set([0,5,10,15,20,25,30,35,40,45,50,55]);
-    if(!allowed.has(M)) return m;
-    return timeToColloquial(H, M);
-  });
-
-  // 4) Ziffern 1..12 als alleinstehende Tokens -> Wortform (für Anzeige angenehmer)
-  // (nicht zwingend, aber hilft "9" -> "neun")
-  const map = { "0":"zwölf","1":"eins","2":"zwei","3":"drei","4":"vier","5":"fünf","6":"sechs","7":"sieben","8":"acht","9":"neun","10":"zehn","11":"elf","12":"zwölf" };
-  t = t.replace(/\b(1[0-2]|[0-9])\b/g, m => map[m] ?? m);
-
-  // 5) Einheitliche Kleinschreibung für Vergleich (Anzeige bleibt trotzdem okay)
-  return t.toLowerCase().replace(/\s+/g," ").trim();
-}
-
-/* ==========================
-   QUIZ GENERATION (20 Aufgaben)
-   - Minuten wechseln über Zyklus
-   - keine identischen Minuten direkt nacheinander
-   - Zeiten nicht doppeln (hour+minute)
-========================== */
-let lastMinute = null;
-
 function generateQuestion(index){
-  // Minuten aus Zyklus
-  let minute = MINUTE_PATTERN_CYCLE[index % MINUTE_PATTERN_CYCLE.length].minute;
+  let minute = MINUTE_CYCLE[index % MINUTE_CYCLE.length].minute;
 
-  // Extra-Schutz: keine gleiche Minute wie vorher
-  if(lastMinute !== null && minute === lastMinute){
-    // nimm nächste im Zyklus
-    minute = MINUTE_PATTERN_CYCLE[(index+1) % MINUTE_PATTERN_CYCLE.length].minute;
+  if(lastMinuteUsed !== null && minute === lastMinuteUsed){
+    minute = MINUTE_CYCLE[(index+1) % MINUTE_CYCLE.length].minute;
   }
-  lastMinute = minute;
+  lastMinuteUsed = minute;
 
-  // Stunde zufällig, aber keine Doppelzeit
   let hour, tries=0;
   while(true){
     hour = randomInt(1,12);
@@ -314,11 +286,11 @@ function generateQuestion(index){
       usedKeys.add(key);
       break;
     }
-    if(++tries>200) break;
+    if(++tries > 300) break;
   }
 
   const expected = timeToColloquial(hour, minute);
-  const label = MINUTE_PATTERN_CYCLE[index % MINUTE_PATTERN_CYCLE.length].label;
+  const label = MINUTE_CYCLE[index % MINUTE_CYCLE.length].label;
   return {hour, minute, expected, label};
 }
 
@@ -383,7 +355,7 @@ function drawClock(hour, minute){
 }
 
 /* ==========================
-   UI FLOW
+   UI start controls
 ========================== */
 function updateStartControls(){
   if(!selectedGrade){ selectedInfo.textContent="Bitte eine Klasse auswählen."; startBtn.disabled=true; return; }
@@ -427,25 +399,23 @@ finishBtn.addEventListener("click", ()=>{
 });
 
 /* ==========================
-   QUIZ LOGIC
+   Quiz flow
 ========================== */
 function startTraining(){
   questionsDone=0; correctAnswers=0; wrongAnswers=0;
   usedKeys = new Set();
-  lastMinute = null;
+  lastMinuteUsed = null;
 
   statCorrect.textContent="0";
   statWrong.textContent="0";
   statTotal.textContent=String(TOTAL_QUESTIONS);
   statMode.textContent=`${GRADE_LABELS[selectedGrade]} – ${DIFF_LABELS[selectedDifficulty]}`;
 
-  lastRaw = "";
-  lastCol = "";
-
+  lastRaw="";
+  lastSpoken="—";
+  heardUI.textContent="Erkannt: —";
   feedback.textContent="";
   feedback.className="feedback";
-  heardRawEl.innerHTML="<strong>Rohtext (1:1):</strong> —";
-  heardColEl.innerHTML="<strong>Text in Alltagssprache:</strong> —";
   fallbackInput.value="";
 
   startScreen.classList.add("hidden");
@@ -459,36 +429,38 @@ function newQuestion(){
   feedback.textContent="";
   feedback.className="feedback";
   lastRaw="";
-  lastCol="";
-  heardRawEl.innerHTML="<strong>Rohtext (1:1):</strong> —";
-  heardColEl.innerHTML="<strong>Text in Alltagssprache:</strong> —";
+  lastSpoken="—";
+  heardUI.textContent="Erkannt: —";
   fallbackInput.value="";
 
   currentQuestion = generateQuestion(questionsDone);
-  variantLabel.textContent = `Minuten-Muster: ${currentQuestion.label}`;
+  variantLabel.textContent = `Mix: ${currentQuestion.label}`;
   drawClock(currentQuestion.hour, currentQuestion.minute);
 
   progressText.textContent = `Aufgabe ${questionsDone+1} von ${TOTAL_QUESTIONS}`;
-  expectedHint.textContent = "Gesucht (muss im Text vorkommen): " + currentQuestion.expected;
+}
+
+function applyRecognitionText(raw){
+  lastRaw = raw || "";
+  lastSpoken = extractFirstAllowedPhrase(lastRaw);
+  heardUI.textContent = "Erkannt: " + lastSpoken;
 }
 
 function checkAnswer(){
-  // Wenn nicht gesprochen, typed nutzen
   if(!lastRaw && fallbackInput.value.trim()){
-    lastRaw = fallbackInput.value.trim();
-    lastCol = normalizeToColloquialText(lastRaw);
-    heardRawEl.innerHTML = "<strong>Rohtext (1:1):</strong> " + escapeHtml(lastRaw);
-    heardColEl.innerHTML = "<strong>Text in Alltagssprache:</strong> " + escapeHtml(lastCol);
+    applyRecognitionText(fallbackInput.value.trim());
   }
 
-  if(!lastCol){
-    feedback.textContent="Ich habe noch keinen Text (Sprechen oder eintippen).";
+  if(!lastRaw){
+    feedback.textContent="Bitte sprechen oder eintippen.";
     feedback.className="feedback error";
     return;
   }
 
-  // Vergleich: expected muss im umgeschriebenen Text vorkommen
-  const ok = lastCol.includes(currentQuestion.expected);
+  const hay = normalizeForCompare(lastRaw);
+  const needle = normalizeForCompare(currentQuestion.expected);
+
+  const ok = hay.includes(needle);
 
   if(ok){
     correctAnswers++;
@@ -498,7 +470,7 @@ function checkAnswer(){
   }else{
     wrongAnswers++;
     statWrong.textContent=String(wrongAnswers);
-    feedback.textContent="Falsch. Gesucht war: " + currentQuestion.expected;
+    feedback.textContent="Falsch.";
     feedback.className="feedback error";
   }
 
@@ -518,7 +490,7 @@ function endTraining(){
 }
 
 /* ==========================
-   SPEECH
+   SpeechRecognition
 ========================== */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognizer=null, isListening=false;
@@ -559,11 +531,8 @@ function setupSpeech(){
   };
 
   recognizer.onresult = (e) => {
-    lastRaw = (e.results?.[0]?.[0]?.transcript || "").trim();
-    lastCol = normalizeToColloquialText(lastRaw);
-
-    heardRawEl.innerHTML = "<strong>Rohtext (1:1):</strong> " + escapeHtml(lastRaw || "—");
-    heardColEl.innerHTML = "<strong>Text in Alltagssprache:</strong> " + escapeHtml(lastCol || "—");
+    const raw = (e.results?.[0]?.[0]?.transcript || "").trim();
+    applyRecognitionText(raw);
   };
 
   srNote.textContent="Mikrofon erlauben, dann „Sprechen“ klicken. (Chrome/Edge empfohlen)";
@@ -582,15 +551,6 @@ checkBtn.addEventListener("click", checkAnswer);
 fallbackInput.addEventListener("keydown",(e)=>{
   if(e.key==="Enter"){ e.preventDefault(); checkAnswer(); }
 });
-
-/* ==========================
-   utils
-========================== */
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-}
 
 /* ==========================
    INIT
