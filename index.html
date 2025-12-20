@@ -133,11 +133,16 @@ const numToWord = (n)=>HOURS_WORDS[(n-1+12)%12];
 
 const MINUTE_PATTERN_CYCLE = [
   { minute: 5,  label: "fünf nach" },
+  { minute: 50,  label: "zehn vor" },
+  { minute: 30,  label: "halb" },
+  { minute: 10,  label: "zehn nach" },
   { minute: 20, label: "zwanzig nach" },
   { minute: 45, label: "viertel vor" },
   { minute: 25, label: "fünf vor halb" },
   { minute: 35, label: "fünf nach halb" },
   { minute: 15, label: "viertel nach" }
+  { minute: 40,  label: "zwanzig vor" },
+  { minute: 0,  label: "punkt" },
 ];
 
 let selectedGrade=null, selectedDifficulty=null;
