@@ -579,9 +579,7 @@ if (SGL) {
     silenceTimer = null;
 };
 
-  };
-
-  recognizer.onerror = (e) => {
+   recognizer.onerror = (e) => {
     feedback.textContent="Sprach-Fehler: " + (e.error || "unbekannt");
     feedback.className="feedback error";
     fallbackWrap.classList.remove("hidden");
