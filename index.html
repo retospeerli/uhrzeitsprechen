@@ -645,6 +645,7 @@ micBtn.addEventListener("click", ()=>{
   if(isListening){ try{ recognizer.stop(); }catch(_){ } return; }
   try{
   speechBuffer = "";
+  lastFinalChunk = "";
   lastRaw = "";
   lastCol = "";
   clearTimeout(silenceTimer);
