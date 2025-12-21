@@ -154,6 +154,7 @@ let lastRaw = "";
 let lastCol = "";
 let speechBuffer = "";
 let silenceTimer = null;
+let lastFinalChunk = "";
 
 /* ==========================
    DOM
@@ -590,9 +591,17 @@ if (SGL) {
   const res = e.results;
   let chunk = "";
   for (let i = e.resultIndex; i < res.length; i++) {
-    const best = (res[i]?.[0]?.transcript || "").trim();
-    if (best) chunk += (chunk ? " " : "") + best;
-  }
+  if (!res[i].isFinal) continue;
+
+  const best = (res[i]?.[0]?.transcript || "").trim();
+  if (!best) continue;
+
+  // 2. Absicherung: identische Final-Ergebnisse ignorieren
+  if (best === lastFinalChunk) continue;
+
+  lastFinalChunk = best;
+  chunk += (chunk ? " " : "") + best;
+}
 
   if (chunk) speechBuffer = (speechBuffer ? speechBuffer + " " : "") + chunk;
   speechBuffer = speechBuffer.replace(/\s+/g, " ").trim();
