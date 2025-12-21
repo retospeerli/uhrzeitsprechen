@@ -625,10 +625,19 @@ if (SGL) {
 micBtn.addEventListener("click", ()=>{
   if(!recognizer){ fallbackWrap.classList.remove("hidden"); return; }
   if(isListening){ try{ recognizer.stop(); }catch(_){ } return; }
-  try{ recognizer.start(); }catch(_){
-    feedback.textContent="Bitte kurz warten und nochmals klicken.";
-    feedback.className="feedback error";
-  }
+  try{
+  speechBuffer = "";
+  lastRaw = "";
+  lastCol = "";
+  clearTimeout(silenceTimer);
+  silenceTimer = null;
+
+  recognizer.start();
+}catch(_){
+  feedback.textContent="Bitte kurz warten und nochmals klicken.";
+  feedback.className="feedback error";
+}
+
 });
 
 checkBtn.addEventListener("click", checkAnswer);
