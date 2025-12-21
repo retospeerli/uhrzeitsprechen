@@ -564,6 +564,10 @@ if (SGL) {
     isListening=false;
     micBtn.classList.remove("listening");
     micBtn.textContent="🎤 Sprechen";
+    clearTimeout(silenceTimer);
+    silenceTimer = null;
+};
+
   };
 
   recognizer.onerror = (e) => {
