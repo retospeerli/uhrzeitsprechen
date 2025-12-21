@@ -152,6 +152,8 @@ let currentQuestion=null;
 
 let lastRaw = "";
 let lastCol = "";
+let speechBuffer = "";
+let silenceTimer = null;
 
 /* ==========================
    DOM
@@ -283,6 +285,15 @@ function normalizeToColloquialText(raw){
   t = t.replace(/\b(20|15|1[0-2]|[0-9])\b/g, m => map[m] ?? m);
 
   return t.toLowerCase().replace(/\s+/g," ").trim();
+}
+  
+function bufferHasHour(text){
+  const t = normalizeForCompare(text);
+  // Wortstunden
+  if (/\b(eins|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf)\b/.test(t)) return true;
+  // Ziffernstunden
+  if (/\b(1[0-2]|[1-9])\b/.test(t)) return true;
+  return false;
 }
 
 /* ==========================
@@ -547,10 +558,10 @@ if (SGL) {
 }
 
   recognizer.lang = "de-CH";
-  recognizer.maxAlternatives = 8;
+  recognizer.interimResults = true;   // Zwischenresultate (Edge/Chrome)
+  recognizer.continuous = true;       // länger zuhören
+  recognizer.maxAlternatives = 8;     // mehr Varianten
 
-  recognizer.interimResults = false;
-  recognizer.continuous = false;
   
   recognizer.onstart = () => {
     isListening=true;
