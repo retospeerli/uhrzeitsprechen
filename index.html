@@ -573,12 +573,47 @@ if (SGL) {
   };
 
   recognizer.onresult = (e) => {
-    lastRaw = (e.results?.[0]?.[0]?.transcript || "").trim();
-    lastCol = normalizeToColloquialText(lastRaw);
+  // Neu hinzugekommenes Stück Text anhängen
+  const res = e.results;
+  let chunk = "";
+  for (let i = e.resultIndex; i < res.length; i++) {
+    const best = (res[i]?.[0]?.transcript || "").trim();
+    if (best) chunk += (chunk ? " " : "") + best;
+  }
 
-    heardRawEl.innerHTML = "<strong>Rohtext (1:1):</strong> " + escapeHtml(lastRaw || "—");
-    heardColEl.innerHTML = "<strong>Text in Alltagssprache:</strong> " + escapeHtml(lastCol || "—");
-  };
+  if (chunk) speechBuffer = (speechBuffer ? speechBuffer + " " : "") + chunk;
+  speechBuffer = speechBuffer.replace(/\s+/g, " ").trim();
+
+  // Anzeige: Rohtext = Buffer, Alltagstext = umgeschrieben (nur Zahlzeiten)
+  lastRaw = speechBuffer;
+  lastCol = normalizeToColloquialText(lastRaw);
+
+  heardRawEl.innerHTML = "<strong>Rohtext (1:1):</strong> " + escapeHtml(lastRaw || "—");
+  heardColEl.innerHTML = "<strong>Text in Alltagssprache:</strong> " + escapeHtml(lastCol || "—");
+
+  // Stille-Timer zurücksetzen
+  clearTimeout(silenceTimer);
+
+  // Wenn noch KEINE Stunde drin ist: weiter zuhören
+  if (!bufferHasHour(lastRaw)) {
+    feedback.textContent = "Stunde fehlt – bitte z.B. „… sieben/… 7“ ergänzen.";
+    feedback.className = "feedback error";
+
+    silenceTimer = setTimeout(() => {
+      try { recognizer.stop(); } catch(_) {}
+    }, 2500); // ohne Stunde länger warten
+    return;
+  }
+
+  // Stunde ist da -> nach kurzer Stille stoppen
+  feedback.textContent = "OK – erkannt. (Jetzt „Überprüfen“.)";
+  feedback.className = "feedback ok";
+
+  silenceTimer = setTimeout(() => {
+    try { recognizer.stop(); } catch(_) {}
+  }, 900);
+};
+
 
   srNote.textContent="Mikrofon erlauben, dann „Sprechen“ klicken. (Chrome/Edge empfohlen)";
 }
