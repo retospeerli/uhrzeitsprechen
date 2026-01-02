@@ -131,6 +131,9 @@ const DIFF_LABELS  = {easy:"einfach",hard:"schwierig"};
 const HOURS_WORDS = ["eins","zwei","drei","vier","fünf","sechs","sieben","acht","neun","zehn","elf","zwölf"];
 const numToWord = (n)=>HOURS_WORDS[(n-1+12)%12];
 
+const correctSound = new Audio("audio/correct.wav"); // oder "correct.wav"
+const errorSound   = new Audio("audio/error.wav");   // oder "error.wav"
+  
 const MINUTE_PATTERN_CYCLE = [
   { minute: 5,  label: "fünf nach" },
   { minute: 50,  label: "zehn vor" },
@@ -246,6 +249,15 @@ function addMinutes12h(h, m, delta){
   return {h: nh, m: nm};
 }
 
+function playSound(a){
+  try{
+    a.pause();
+    a.currentTime = 0;
+    const p = a.play();
+    if(p && typeof p.catch === "function") p.catch(()=>{});
+  }catch(_){}
+}
+  
 /* ==========================
    ROH -> ALLTAGSTEXT (nur Umschreiben von Zahlzeit-Tokens)
 ========================== */
@@ -495,11 +507,13 @@ function checkAnswer(){
   const ok = hay.includes(needle);
 
   if(ok){
+    playSound(correctSound);
     correctAnswers++;
     statCorrect.textContent=String(correctAnswers);
     feedback.textContent="Richtig! 👍";
     feedback.className="feedback ok";
   }else{
+    playSound(errorSound);
     wrongAnswers++;
     statWrong.textContent=String(wrongAnswers);
     feedback.textContent="Falsch. Gesucht war: " + currentQuestion.expected;
